@@ -78,6 +78,7 @@ export const SidebarContent = (props: {
                 }
               >
                 <IconButton
+                  disabled={import.meta.env.VITE_DISABLE_BUTTON}
                   icon="plus"
                   variant="ghost"
                   size="large"
@@ -92,6 +93,7 @@ export const SidebarContent = (props: {
         <div class="shrink-0 w-full pt-3 pb-6 flex flex-col items-center gap-2">
           <TooltipKeybind placement={placement()} title={props.settingsLabel()} keybind={props.settingsKeybind() ?? ""}>
             <IconButton
+              disabled={import.meta.env.VITE_DISABLE_BUTTON}
               icon="settings-gear"
               variant="ghost"
               size="large"

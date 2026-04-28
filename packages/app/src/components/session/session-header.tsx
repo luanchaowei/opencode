@@ -157,7 +157,8 @@ export function SessionHeader() {
   const search = createMemo(() => !isDesktopBeta || settings.general.showSearch())
   const tree = createMemo(() => !isDesktopBeta || settings.general.showFileTree())
   const term = createMemo(() => !isDesktopBeta || settings.general.showTerminal())
-  const status = createMemo(() => !isDesktopBeta || settings.general.showStatus())
+  const status = createMemo(() => !(import.meta.env.VITE_DISABLE_BUTTON) && (!isDesktopBeta || settings.general.showStatus()))
+  // const status = createMemo(() => false)
 
   const [exists, setExists] = createStore<Partial<Record<OpenApp, boolean>>>({
     finder: true,
@@ -443,6 +444,7 @@ export function SessionHeader() {
                       aria-label={language.t("command.terminal.toggle")}
                       aria-expanded={view().terminal.opened()}
                       aria-controls="terminal-panel"
+                      disabled={import.meta.env.VITE_DISABLE_BUTTON}
                     >
                       <Icon size="small" name={view().terminal.opened() ? "terminal-active" : "terminal"} />
                     </Button>
@@ -461,6 +463,7 @@ export function SessionHeader() {
                       aria-label={language.t("command.review.toggle")}
                       aria-expanded={view().reviewPanel.opened()}
                       aria-controls="review-panel"
+                      disabled={import.meta.env.VITE_DISABLE_BUTTON}
                     >
                       <Icon size="small" name={view().reviewPanel.opened() ? "review-active" : "review"} />
                     </Button>
@@ -478,6 +481,7 @@ export function SessionHeader() {
                         aria-label={language.t("command.fileTree.toggle")}
                         aria-expanded={layout.fileTree.opened()}
                         aria-controls="file-tree-panel"
+                        disabled={import.meta.env.VITE_DISABLE_BUTTON}
                       >
                         <div class="relative flex items-center justify-center size-4">
                           <Icon

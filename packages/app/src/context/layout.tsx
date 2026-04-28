@@ -719,7 +719,9 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
         const key = createSessionKeyReader(sessionKey, ensureKey)
         const s = createMemo(() => store.sessionView[key()] ?? { scroll: {} })
         const terminalOpened = createMemo(() => store.terminal?.opened ?? false)
-        const reviewPanelOpened = createMemo(() => store.review?.panelOpened ?? true)
+        const reviewPanelOpened = createMemo(
+          () => !(import.meta.env.VITE_DISABLE_BUTTON) && (store.review?.panelOpened ?? true)
+        )
 
         function setTerminalOpened(next: boolean) {
           const current = store.terminal
