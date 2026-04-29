@@ -1,4 +1,4 @@
-import { createMemo, For, Match, Switch } from "solid-js"
+import { createEffect, createMemo, For, Match, Switch } from "solid-js"
 import { Button } from "@opencode-ai/ui/button"
 import { Logo } from "@opencode-ai/ui/logo"
 import { useLayout } from "@/context/layout"
@@ -29,7 +29,14 @@ export default function Home() {
       .sort((a, b) => (b.time.updated ?? b.time.created) - (a.time.updated ?? a.time.created))
       .slice(0, 5)
   })
-
+  const defaultDir = import.meta.env.VITE_OPENCODE_DEFAULT_DIR
+  createEffect(() => {
+    if (!defaultDir || !sync.ready) return
+    const dir = defaultDir.startsWith("~") ? defaultDir.replace("~", sync.data.path.home) : defaultDir
+    layout.projects.open(dir)
+    server.projects.touch(dir)
+    navigate(`/${base64Encode(dir)}`, { replace: true })
+  })
   const serverDotClass = createMemo(() => {
     const healthy = server.healthy()
     if (healthy === true) return "bg-icon-success-base"
