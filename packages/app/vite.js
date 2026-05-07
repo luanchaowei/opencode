@@ -44,20 +44,47 @@ export default [
               return
             }
             
-            const parts = buffer.toString().split(`--${boundary}`)
+            // Parse multipart/form-data properly for binary files
+            const boundaryBuffer = Buffer.from(`--${boundary}`)
             let fileContent = null
             let filePath = null
             
-            for (const part of parts) {
-              if (part.includes("name=\"file\"")) {
-                const headerEnd = part.indexOf("\r\n\r\n")
+            // Find file and path parts
+            const boundaryPositions = []
+            let pos = 0
+            while (pos < buffer.length) {
+              const idx = buffer.indexOf(boundaryBuffer, pos)
+              if (idx === -1) break
+              boundaryPositions.push(idx)
+              pos = idx + boundaryBuffer.length
+            }
+            
+            for (let i = 0; i < boundaryPositions.length - 1; i++) {
+              const start = boundaryPositions[i] + boundaryBuffer.length
+              const end = boundaryPositions[i + 1]
+              const part = buffer.slice(start, end)
+              
+              // Check if this is the file part
+              const nameMatch = part.indexOf(Buffer.from('name="file"'))
+              if (nameMatch !== -1) {
+                // Find header end (after \r\n\r\n)
+                const headerEnd = part.indexOf(Buffer.from('\r\n\r\n'))
                 if (headerEnd !== -1) {
-                  fileContent = part.slice(headerEnd + 4, part.lastIndexOf("\r\n"))
+                  // File content is between header end and the trailing \r\n before next boundary
+                  const contentStart = headerEnd + 4
+                  const contentEnd = part.length - 2 // Remove trailing \r\n
+                  fileContent = part.slice(contentStart, contentEnd)
                 }
-              } else if (part.includes("name=\"path\"")) {
-                const headerEnd = part.indexOf("\r\n\r\n")
+              }
+              
+              // Check if this is the path part
+              const pathMatch = part.indexOf(Buffer.from('name="path"'))
+              if (pathMatch !== -1) {
+                const headerEnd = part.indexOf(Buffer.from('\r\n\r\n'))
                 if (headerEnd !== -1) {
-                  filePath = part.slice(headerEnd + 4, part.lastIndexOf("\r\n")).trim()
+                  const contentStart = headerEnd + 4
+                  const contentEnd = part.length - 2
+                  filePath = part.slice(contentStart, contentEnd).toString().trim()
                 }
               }
             }
@@ -84,7 +111,7 @@ export default [
               mkdirSync(dir, { recursive: true })
             }
             
-            writeFileSync(fullPath, fileContent, "binary")
+            writeFileSync(fullPath, fileContent)
             
             res.setHeader("Content-Type", "application/json")
             res.end(JSON.stringify({ success: true, path: fullPath }))

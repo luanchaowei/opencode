@@ -200,7 +200,6 @@ export default function FileTree(props: {
   modified?: readonly string[]
   kinds?: ReadonlyMap<string, Kind>
   draggable?: boolean
-  // onFileClick?: (file: FileNode) => void
   onFileDoubleClick?: (file: FileNode) => void
 
   _filter?: Filter
@@ -413,6 +412,11 @@ export default function FileTree(props: {
                       draggable={draggable()}
                       kinds={kinds()}
                       marks={marks()}
+                      onDblClick={(e: MouseEvent) => {
+                        e.stopPropagation()
+                        e.preventDefault()
+                        props.onFileDoubleClick?.(node)
+                      }}
                     >
                       <div class="size-4 flex items-center justify-center text-icon-weak">
                         <Icon name={expanded() ? "chevron-down" : "chevron-right"} size="small" />
@@ -440,7 +444,6 @@ export default function FileTree(props: {
                         kinds={props.kinds}
                         active={props.active}
                         draggable={props.draggable}
-                        onFileClick={props.onFileClick}
                         _filter={filter()}
                         _marks={marks()}
                         _deeps={deeps()}
@@ -462,7 +465,6 @@ export default function FileTree(props: {
                   marks={marks()}
                   as="button"
                   type="button"
-                  onClick={() => props.onFileClick?.(node)}
                   onDblClick={() => props.onFileDoubleClick?.(node)}
                 >
                   <div class="w-4 shrink-0" />
