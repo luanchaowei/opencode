@@ -440,7 +440,11 @@ const language = useLanguage()
                             kinds={kinds()}
                             draggable={false}
                             active={props.activeDiff}
-                            onFileClick={(node) => props.focusReviewDiff(node.path)}
+                            // onFileClick={(node) => props.focusReviewDiff(node.path)}
+                            onFileDoubleClick={(node) => {
+                              const current = prompt.current()
+                              prompt.set([...current, { type: "file", path: node.path, content: "@" + node.path, start: 0, end: 0 }], prompt.cursor())
+                            }}
                           />
                         </Show>
                       </Match>
@@ -455,7 +459,11 @@ const language = useLanguage()
                           class="pt-3"
                           modified={diffFiles()}
                           kinds={kinds()}
-                          onFileClick={(node) => openTab(file.tab(node.path))}
+                          // onFileClick={(node) => openTab(file.tab(node.path))}
+                          onFileDoubleClick={(node) => {
+                            const current = prompt.current()
+                            prompt.set([...current, { type: "file", path: node.path, content: "@" + node.path, start: 0, end: 0 }], prompt.cursor())
+                          }}
                         />
                       </Match>
                     </Switch>

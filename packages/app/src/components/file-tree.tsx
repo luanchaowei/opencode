@@ -200,7 +200,8 @@ export default function FileTree(props: {
   modified?: readonly string[]
   kinds?: ReadonlyMap<string, Kind>
   draggable?: boolean
-  onFileClick?: (file: FileNode) => void
+  // onFileClick?: (file: FileNode) => void
+  onFileDoubleClick?: (file: FileNode) => void
 
   _filter?: Filter
   _marks?: Set<string>
@@ -451,17 +452,18 @@ export default function FileTree(props: {
                 </Collapsible>
               </Match>
               <Match when={node.type === "file"}>
-                <FileTreeNode
+<FileTreeNode
                   node={node}
-                  level={level}
+                  level={level + 1}
+                  draggable={false}
                   active={props.active}
                   nodeClass={props.nodeClass}
-                  draggable={draggable()}
                   kinds={kinds()}
                   marks={marks()}
                   as="button"
                   type="button"
                   onClick={() => props.onFileClick?.(node)}
+                  onDblClick={() => props.onFileDoubleClick?.(node)}
                 >
                   <div class="w-4 shrink-0" />
                   <Switch>
