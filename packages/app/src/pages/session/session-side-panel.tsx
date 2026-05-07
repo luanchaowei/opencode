@@ -6,11 +6,13 @@ import { IconButton } from "@opencode-ai/ui/icon-button"
 import { TooltipKeybind } from "@opencode-ai/ui/tooltip"
 import { ResizeHandle } from "@opencode-ai/ui/resize-handle"
 import { Mark } from "@opencode-ai/ui/logo"
+import { showToast } from "@opencode-ai/ui/toast"
 import { DragDropProvider, DragDropSensors, DragOverlay, SortableProvider, closestCenter } from "@thisbeyond/solid-dnd"
 import type { DragEvent } from "@thisbeyond/solid-dnd"
 import type { SnapshotFileDiff, VcsFileDiff } from "@opencode-ai/sdk/v2"
 import { ConstrainDragYAxis, getDraggableId } from "@/utils/solid-dnd"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
+import { Icon } from "@opencode-ai/ui/icon"
 
 import FileTree from "@/components/file-tree"
 import { SessionContextUsage } from "@/components/session-context-usage"
@@ -22,6 +24,9 @@ import { useLayout } from "@/context/layout"
 import { usePlatform } from "@/context/platform"
 import { useSettings } from "@/context/settings"
 import { useSync } from "@/context/sync"
+import { usePrompt } from "@/context/prompt"
+import { useParams } from "@solidjs/router"
+import { useSDK } from "@/context/sdk"
 import { createFileTabListSync } from "@/pages/session/file-tab-scroll"
 import { FileTabContent } from "@/pages/session/file-tabs"
 import { createOpenSessionFileTab, createSessionTabs, getTabReorderIndex, type Sizing } from "@/pages/session/helpers"
@@ -46,12 +51,17 @@ export function SessionSidePanel(props: {
   const settings = useSettings()
   const sync = useSync()
   const file = useFile()
-  const language = useLanguage()
+const language = useLanguage()
   const command = useCommand()
   const dialog = useDialog()
+  const params = useParams()
+  const prompt = usePrompt()
+  const sdk = useSDK()
   const { sessionKey, tabs, view } = useSessionLayout()
 
   const isDesktop = createMediaQuery("(min-width: 768px)")
+  const sessionID = createMemo(() => params.id || "default")
+  const uploadDir = createMemo(() => `uploads/${sessionID()}`)
   const shown = createMemo(
     () =>
       platform.platform !== "desktop" ||
@@ -365,6 +375,29 @@ export function SessionSidePanel(props: {
                   !props.size.active(),
               }}
               style={{ width: treeWidth() }}
+              onDragEnter={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                document.body.setAttribute("data-file-tree-dragging", "true")
+              }}
+              onDragOver={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+              }}
+              onDragLeave={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                const target = e.target as HTMLElement
+                const panel = target.closest("#file-tree-panel")
+                if (!panel || e.currentTarget !== panel) {
+                  document.body.removeAttribute("data-file-tree-dragging")
+                }
+              }}
+              onDrop={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                document.body.removeAttribute("data-file-tree-dragging")
+              }}
             >
               <div
                 class="h-full flex flex-col overflow-hidden group/filetree"
@@ -418,7 +451,7 @@ export function SessionSidePanel(props: {
                       <Match when={nofiles()}>{empty(language.t("session.files.empty"))}</Match>
                       <Match when={true}>
                         <FileTree
-                          path=""
+                          path={uploadDir()}
                           class="pt-3"
                           modified={diffFiles()}
                           kinds={kinds()}
@@ -426,6 +459,94 @@ export function SessionSidePanel(props: {
                         />
                       </Match>
                     </Switch>
+
+                    <div
+                      class="mt-4 p-3 border-2 border-dashed border-border-weak rounded-lg hover:border-border-base transition-colors file-upload-zone"
+                      style="min-height: 80px"
+                      onDragEnter={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        e.stopImmediatePropagation()
+                        document.body.setAttribute("data-upload-zone-active", "true")
+                        document.body.setAttribute("data-prevent-drag-overlay", "true")
+                      }}
+                      onDragOver={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        e.stopImmediatePropagation()
+                        e.dataTransfer!.dropEffect = "copy"
+                      }}
+                      onDragLeave={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        e.stopImmediatePropagation()
+                        const target = e.target as HTMLElement
+                        const zone = target.closest(".file-upload-zone")
+                        if (zone && e.currentTarget === zone) {
+                          document.body.removeAttribute("data-upload-zone-active")
+                          document.body.removeAttribute("data-prevent-drag-overlay")
+                        }
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        e.stopImmediatePropagation()
+
+                        document.body.setAttribute("data-drop-completed", "true")
+                        document.body.removeAttribute("data-upload-zone-active")
+                        document.body.removeAttribute("data-prevent-drag-overlay")
+
+                        const files = Array.from(e.dataTransfer!.files)
+                        if (files.length === 0) return
+
+                        for (const droppedFile of files) {
+                          const targetPath = `${uploadDir()}/${droppedFile.name}`
+
+                          const formData = new FormData()
+                          formData.append("file", droppedFile)
+                          formData.append("path", targetPath)
+
+                          fetch(`/file/upload?directory=${sdk.directory}`, {
+                            method: "POST",
+                            body: formData,
+                          })
+                            .then(async (response) => {
+                              if (!response.ok) {
+                                const error = await response.json()
+                                throw new Error(error.error || "Upload failed")
+                              }
+                              return response.json()
+                            })
+                            .then(() => {
+                              file.tree.refresh(uploadDir())
+                              showToast({
+                                variant: "success",
+                                title: "文件上传成功",
+                                description: `${droppedFile.name} 已保存`,
+                              })
+                              setTimeout(() => {
+                                document.body.removeAttribute("data-drop-completed")
+                              }, 100)
+                            })
+                            .catch((error) => {
+                              const errorMsg = error instanceof Error ? error.message : String(error)
+                              showToast({
+                                variant: "error",
+                                title: language.t("toast.file.uploadFailed.title"),
+                                description: `${droppedFile.name}: ${errorMsg}`,
+                              })
+                              setTimeout(() => {
+                                document.body.removeAttribute("data-drop-completed")
+                              }, 100)
+                            })
+                        }
+                      }}
+                    >
+                      <div class="flex flex-col items-center justify-center text-text-weak">
+                        <Icon name="cloud-upload" class="size-6 mb-2" />
+                        <p class="text-12-medium">拖拽文件上传</p>
+                      </div>
+                    </div>
                   </Tabs.Content>
                 </Tabs>
               </div>

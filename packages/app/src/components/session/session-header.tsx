@@ -481,7 +481,7 @@ export function SessionHeader() {
                         aria-label={language.t("command.fileTree.toggle")}
                         aria-expanded={layout.fileTree.opened()}
                         aria-controls="file-tree-panel"
-                        disabled={import.meta.env.VITE_DISABLE_BUTTON}
+                        // disabled={import.meta.env.VITE_DISABLE_BUTTON}
                       >
                         <div class="relative flex items-center justify-center size-4">
                           <Icon

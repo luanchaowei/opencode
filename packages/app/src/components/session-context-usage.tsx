@@ -109,6 +109,7 @@ export function SessionContextUsage(props: SessionContextUsageProps) {
           <Match when={true}>
             <Button
               type="button"
+              style={{display:"none"}}
               variant="ghost"
               class="size-6"
               onClick={openContext}

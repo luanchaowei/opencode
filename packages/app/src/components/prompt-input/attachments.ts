@@ -7,6 +7,7 @@ import { uuid } from "@/utils/uuid"
 import { getCursorPosition } from "./editor-dom"
 import { attachmentMime } from "./files"
 import { normalizePaste, pasteMode } from "./paste"
+import { useSDK } from "@/context/sdk"
 
 function dataUrl(file: File, mime: string) {
   return new Promise<string>((resolve) => {
@@ -37,6 +38,7 @@ type PromptAttachmentsInput = {
 export function createPromptAttachments(input: PromptAttachmentsInput) {
   const prompt = usePrompt()
   const language = useLanguage()
+  const sdk = useSDK()
 
   const warn = () => {
     showToast({
@@ -54,6 +56,18 @@ export function createPromptAttachments(input: PromptAttachmentsInput) {
 
     const editor = input.editor()
     if (!editor) return false
+
+    // Only support image attachments (<= 10MB)
+    // Other files should be uploaded via file tree drag-drop
+    if (!mime.startsWith("image/") || file.size > 10 * 1024 * 1024) {
+      if (toast) {
+        showToast({
+          title: "文件类型不支持",
+          description: "请将文件拖拽到左侧文件树上传",
+        })
+      }
+      return false
+    }
 
     const url = await dataUrl(file, mime)
     if (!url) return false
@@ -141,44 +155,18 @@ export function createPromptAttachments(input: PromptAttachmentsInput) {
   }
 
   const handleGlobalDragOver = (event: DragEvent) => {
-    if (input.isDialogActive()) return
-
-    event.preventDefault()
-    const hasFiles = event.dataTransfer?.types.includes("Files")
-    const hasText = event.dataTransfer?.types.includes("text/plain")
-    if (hasFiles) {
-      input.setDraggingType("image")
-    } else if (hasText) {
-      input.setDraggingType("@mention")
-    }
+    // Disabled: file uploads via file tree drag-drop only
+    return
   }
 
   const handleGlobalDragLeave = (event: DragEvent) => {
-    if (input.isDialogActive()) return
-    if (!event.relatedTarget) {
-      input.setDraggingType(null)
-    }
+    // Disabled: file uploads via file tree drag-drop only
+    return
   }
 
   const handleGlobalDrop = async (event: DragEvent) => {
-    if (input.isDialogActive()) return
-
-    event.preventDefault()
-    input.setDraggingType(null)
-
-    const plainText = event.dataTransfer?.getData("text/plain")
-    const filePrefix = "file:"
-    if (plainText?.startsWith(filePrefix)) {
-      const filePath = plainText.slice(filePrefix.length)
-      input.focusEditor()
-      input.addPart({ type: "file", path: filePath, content: "@" + filePath, start: 0, end: 0 })
-      return
-    }
-
-    const dropped = event.dataTransfer?.files
-    if (!dropped) return
-
-    await addAttachments(Array.from(dropped))
+    // Disabled: file uploads via file tree drag-drop only
+    return
   }
 
   onMount(() => {
