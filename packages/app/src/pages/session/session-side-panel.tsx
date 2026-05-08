@@ -467,8 +467,8 @@ const language = useLanguage()
                               file.tree.refresh(uploadDir())
                               showToast({
                                 variant: "success",
-                                title: "文件上传成功",
-                                description: `${selectedFile.name} 已保存`,
+                                title: language.t("toast.file.uploadSuccess.title"),
+                                description: language.t("toast.file.uploadSuccess.description", { filename: selectedFile.name }),
                               })
                             } catch (error) {
                               const errorMsg = error instanceof Error ? error.message : String(error)
@@ -542,8 +542,8 @@ const language = useLanguage()
                               file.tree.refresh(uploadDir())
                               showToast({
                                 variant: "success",
-                                title: "文件上传成功",
-                                description: `${droppedFile.name} 已保存`,
+                                title: language.t("toast.file.uploadSuccess.title"),
+                                description: language.t("toast.file.uploadSuccess.description", { filename: droppedFile.name }),
                               })
                               setTimeout(() => {
                                 document.body.removeAttribute("data-drop-completed")
@@ -565,7 +565,7 @@ const language = useLanguage()
                     >
                       <div class="flex flex-col items-center justify-center text-text-weak">
                         <Icon name="cloud-upload" class="size-6 mb-2" />
-                        <p class="text-12-medium">拖拽或者点击上传文件</p>
+                        <p class="text-12-medium">{language.t("session.files.uploadHint")}</p>
                       </div>
                     </div>
                   </Tabs.Content>

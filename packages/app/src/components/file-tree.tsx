@@ -20,6 +20,7 @@ import {
 import { Dynamic } from "solid-js/web"
 import type { FileNode } from "@opencode-ai/sdk/v2"
 import { useSDK } from "@/context/sdk"
+import { useLanguage } from "@/context/language"
 
 const MAX_DEPTH = 128
 
@@ -122,6 +123,7 @@ const FileTreeNode = (
       marks?: Set<string>
       as?: "div" | "button"
       onDelete?: (node: FileNode) => void
+      language?: { t: (key: string, params?: any) => string }
     },
 ) => {
   const [local, rest] = splitProps(p, [
@@ -137,6 +139,7 @@ const FileTreeNode = (
     "class",
     "classList",
     "onDelete",
+    "language",
   ])
   const kind = () => visibleKind(local.node, local.kinds, local.marks)
   const active = () => !!kind() && !local.node.ignored
@@ -187,7 +190,7 @@ const FileTreeNode = (
             e.preventDefault()
             local.onDelete?.(local.node)
           }}
-          aria-label="删除文件"
+          aria-label={local.language?.t("file.delete.label") || "Delete file"}
         >
           <Icon name="close" size="small" />
         </button>
@@ -229,11 +232,12 @@ export default function FileTree(props: {
 }) {
   const file = useFile()
   const sdk = useSDK()
+  const language = useLanguage()
   const level = props.level ?? 0
   const draggable = () => props.draggable ?? true
   
   const handleDelete = async (node: FileNode) => {
-    const confirmed = window.confirm(`确定要删除 ${node.name} 吗？`)
+    const confirmed = window.confirm(language.t("file.delete.confirm", { filename: node.name }))
     if (!confirmed) return
     
     try {
@@ -252,8 +256,8 @@ export default function FileTree(props: {
       
       showToast({
         variant: "success",
-        title: "删除成功",
-        description: `${node.name} 已删除`,
+        title: language.t("toast.file.deleteSuccess.title"),
+        description: language.t("toast.file.deleteSuccess.description", { filename: node.name }),
       })
       
       // Refresh file tree
@@ -262,8 +266,8 @@ export default function FileTree(props: {
       const errorMsg = error instanceof Error ? error.message : String(error)
       showToast({
         variant: "error",
-        title: "删除失败",
-        description: errorMsg,
+        title: language.t("toast.file.deleteFailed.title"),
+        description: language.t("toast.file.deleteFailed.description", { filename: node.name, error: errorMsg }),
       })
     }
   }
@@ -468,6 +472,7 @@ export default function FileTree(props: {
                       draggable={draggable()}
                       kinds={kinds()}
                       marks={marks()}
+                      language={language}
                       onDelete={props.showDelete ? handleDelete : undefined}
                       onDblClick={(e: MouseEvent) => {
                         e.stopPropagation()
@@ -523,6 +528,7 @@ export default function FileTree(props: {
                   marks={marks()}
                   as="button"
                   type="button"
+                  language={language}
                   onDelete={props.showDelete ? handleDelete : undefined}
                   onDblClick={() => props.onFileDoubleClick?.(node)}
                 >

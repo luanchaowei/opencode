@@ -439,6 +439,16 @@ export const dict = {
   "toast.file.loadFailed.title": "Failed to load file",
   "toast.file.listFailed.title": "Failed to list files",
   "toast.file.uploadFailed.title": "Failed to upload file",
+  "toast.file.uploadSuccess.title": "File uploaded successfully",
+  "toast.file.uploadSuccess.description": "{{filename}} saved",
+  "toast.file.deleteSuccess.title": "File deleted successfully",
+  "toast.file.deleteSuccess.description": "{{filename}} deleted",
+  "toast.file.deleteFailed.title": "Delete failed",
+  "toast.file.deleteFailed.description": "{{filename}}: {{error}}",
+  
+  "session.files.uploadHint": "Drag or click to upload files",
+  "file.delete.confirm": "Are you sure you want to delete {{filename}}?",
+  "file.delete.label": "Delete file",
 
   "toast.context.noLineSelection.title": "No line selection",
   "toast.context.noLineSelection.description": "Select a line range in a file tab first.",
@@ -454,9 +464,9 @@ export const dict = {
   "toast.session.unshare.failed.title": "Failed to unshare session",
   "toast.session.unshare.failed.description": "An error occurred while unsharing the session",
 
-  "toast.session.listFailed.title": "Failed to load sessions for {{project}}",
+"toast.session.listFailed.title": "Failed to load sessions for {{project}}",
   "toast.project.reloadFailed.title": "Failed to reload {{project}}",
-
+  
   "toast.update.title": "Update available",
   "toast.update.description": "A new version of OpenCode ({{version}}) is now available to install.",
   "toast.update.action.installRestart": "Install and restart",
