@@ -62,6 +62,24 @@ const language = useLanguage()
   const isDesktop = createMediaQuery("(min-width: 768px)")
   const sessionID = createMemo(() => params.id || "default")
   const uploadDir = createMemo(() => `uploads/${sessionID()}`)
+  
+  // Ensure upload directory exists
+  createEffect(() => {
+    const dir = uploadDir()
+    if (dir && sdk.directory) {
+      const fullPath = `${sdk.directory}/${dir}`
+      fetch('/directory/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: fullPath }),
+      })
+        .then(() => {
+          // Refresh file tree after directory is created
+          file.tree.list(dir, { force: true }).catch(() => {})
+        })
+        .catch(() => {})
+    }
+  })
   const shown = createMemo(
     () =>
       platform.platform !== "desktop" ||

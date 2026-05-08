@@ -9,6 +9,7 @@ import { Persist, persisted } from "@/utils/persist"
 import { cycleModelVariant, getConfiguredAgentVariant, resolveModelVariant } from "./model-variant"
 import { useSDK } from "./sdk"
 import { useSync } from "./sync"
+import { useGlobalSync } from "./global-sync"
 
 export type ModelKey = { providerID: string; modelID: string; variant?: string }
 
@@ -57,6 +58,7 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
     const params = useParams()
     const sdk = useSDK()
     const sync = useSync()
+    const globalSync = useGlobalSync()
     const providers = useProviders()
     const models = useModels()
 
@@ -302,6 +304,13 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
           models.setVisibility(item, true)
           if (!options?.recent) return
           models.recent.push(item)
+          
+          // If this is the first model selection (no configured model), save to global config
+          const hasGlobalModel = sync.data.config.model
+          if (!hasGlobalModel && item) {
+            const modelString = `${item.providerID}/${item.modelID}`
+            globalSync.updateConfig({ ...sync.data.config, model: modelString }).catch(() => {})
+          }
         })
       },
       visible(item: ModelKey) {

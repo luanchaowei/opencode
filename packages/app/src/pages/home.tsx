@@ -26,16 +26,48 @@ export default function Home() {
   const recent = createMemo(() => {
     return sync.data.project
       .slice()
-      .sort((a, b) => (b.time.updated ?? b.time.created) - (a.time.updated ?? a.time.created))
+      .sort((a, b) => (b.time.updated ?? b.time.updated) - (a.time.updated ?? b.time.updated))
       .slice(0, 5)
   })
   const defaultDir = import.meta.env.VITE_OPENCODE_DEFAULT_DIR
-  createEffect(() => {
+  
+createEffect(async () => {
     if (!defaultDir || !sync.ready) return
-    const dir = defaultDir.startsWith("~") ? defaultDir.replace("~", sync.data.path.home) : defaultDir
-    layout.projects.open(dir)
-    server.projects.touch(dir)
-    navigate(`/${base64Encode(dir)}`, { replace: true })
+    
+    try {
+      const response = await fetch('/device/info')
+      if (!response.ok) {
+        throw new Error('Failed to get device info')
+      }
+      const { clientIP } = await response.json()
+      
+      const baseDir = defaultDir.startsWith("~") ? defaultDir.replace("~", sync.data.path.home) : defaultDir
+      const deviceDir = `${baseDir}/${clientIP}`
+      
+      // Create directory if it doesn't exist
+      await fetch('/directory/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: deviceDir }),
+      })
+      
+      layout.projects.open(deviceDir)
+      server.projects.touch(deviceDir)
+      navigate(`/${base64Encode(deviceDir)}`, { replace: true })
+    } catch (error) {
+      const baseDir = defaultDir.startsWith("~") ? defaultDir.replace("~", sync.data.path.home) : defaultDir
+      
+      // Create directory if it doesn't exist
+      await fetch('/directory/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: baseDir }),
+      })
+      
+      layout.projects.open(baseDir)
+      server.projects.touch(baseDir)
+      navigate(`/${base64Encode(baseDir)}`, { replace: true })
+    }
   })
   const serverDotClass = createMemo(() => {
     const healthy = server.healthy()

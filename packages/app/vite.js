@@ -6,6 +6,34 @@ import { fileURLToPath } from "url"
 
 const theme = fileURLToPath(new URL("./public/oc-theme-preload.js", import.meta.url))
 
+function getClientIP(req) {
+  // 如果有代理，从 x-forwarded-for 获取
+  const forwarded = req.headers['x-forwarded-for']
+  if (forwarded) {
+    const ip = forwarded.split(',')[0].trim()
+    // 去掉冒号（IPv6），点号改为下划线（IPv4）
+    return ip.replace(/:/g, '').replace(/\./g, '_')
+  }
+  
+  // 直连时从 socket 获取
+  const remoteAddress = req.socket?.remoteAddress
+  if (remoteAddress) {
+    // 处理 IPv6 映射的 IPv4 地址 (::ffff:192.168.1.1)
+    if (remoteAddress.startsWith('::ffff:')) {
+      const ipv4 = remoteAddress.substring(7)  // 提取 IPv4 部分
+      return ipv4.replace(/\./g, '_')  // 点号改为下划线
+    }
+    // 本地回环地址统一为 localhost
+    if (remoteAddress === '::1' || remoteAddress === '127.0.0.1') {
+      return 'localhost'
+    }
+    // 去掉冒号（IPv6），点号改为下划线（IPv4）
+    return remoteAddress.replace(/:/g, '').replace(/\./g, '_')
+  }
+  
+  return 'unknown'
+}
+
 /**
  * @type {import("vite").PluginOption}
  */
@@ -23,6 +51,60 @@ export default [
           format: "es",
         },
       }
+    },
+  },
+  {
+    name: "opencode-desktop:device-info-api",
+    configureServer(server) {
+      server.middlewares.use(async (req, res, next) => {
+        if (req.url?.startsWith("/device/info") && req.method === "GET") {
+          try {
+            const clientIP = getClientIP(req)
+            res.setHeader("Content-Type", "application/json")
+            res.end(JSON.stringify({ clientIP }))
+          } catch (error) {
+            res.statusCode = 500
+            res.end(JSON.stringify({ error: error.message }))
+          }
+        } else {
+          next()
+        }
+      })
+    },
+  },
+  {
+    name: "opencode-desktop:directory-create-api",
+    configureServer(server) {
+      server.middlewares.use(async (req, res, next) => {
+        if (req.url?.startsWith("/directory/create") && req.method === "POST") {
+          try {
+            const chunks = []
+            for await (const chunk of req) {
+              chunks.push(chunk)
+            }
+            const body = JSON.parse(Buffer.concat(chunks).toString())
+            const { path: targetPath } = body
+            
+            if (!targetPath) {
+              res.statusCode = 400
+              res.end(JSON.stringify({ error: "Missing path" }))
+              return
+            }
+            
+            if (!existsSync(targetPath)) {
+              mkdirSync(targetPath, { recursive: true })
+            }
+            
+            res.setHeader("Content-Type", "application/json")
+            res.end(JSON.stringify({ success: true, path: targetPath }))
+          } catch (error) {
+            res.statusCode = 500
+            res.end(JSON.stringify({ error: error.message }))
+          }
+        } else {
+          next()
+        }
+      })
     },
   },
   {

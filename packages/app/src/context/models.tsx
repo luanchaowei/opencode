@@ -112,6 +112,16 @@ export const { use: useModels, provider: ModelsProvider } = createSimpleContext(
     }
 
     const visible = (model: ModelKey) => {
+      // Wait for persist to load before checking visibility
+      if (!ready()) {
+        // During loading, use default logic (latest or no release date)
+        const key = modelKey(model)
+        if (latestSet().has(key)) return true
+        const date = release().get(key)
+        if (!date?.isValid) return true
+        return false
+      }
+      
       const key = modelKey(model)
       const state = visibility().get(key)
       if (state === "hide") return false

@@ -178,6 +178,7 @@ const FileTreeNode = (
           "text-text-weak": !local.node.ignored && !active(),
         }}
         style={active() ? color() : undefined}
+        title={local.node.name}
       >
         {local.node.name}
       </span>
