@@ -3,6 +3,7 @@ import { encodeFilePath } from "@/context/file/path"
 import { Collapsible } from "@opencode-ai/ui/collapsible"
 import { FileIcon } from "@opencode-ai/ui/file-icon"
 import { Icon } from "@opencode-ai/ui/icon"
+import { showToast } from "@opencode-ai/ui/toast"
 import {
   createEffect,
   createMemo,
@@ -18,6 +19,7 @@ import {
 } from "solid-js"
 import { Dynamic } from "solid-js/web"
 import type { FileNode } from "@opencode-ai/sdk/v2"
+import { useSDK } from "@/context/sdk"
 
 const MAX_DEPTH = 128
 
@@ -119,6 +121,7 @@ const FileTreeNode = (
       kinds?: ReadonlyMap<string, Kind>
       marks?: Set<string>
       as?: "div" | "button"
+      onDelete?: (node: FileNode) => void
     },
 ) => {
   const [local, rest] = splitProps(p, [
@@ -133,6 +136,7 @@ const FileTreeNode = (
     "children",
     "class",
     "classList",
+    "onDelete",
   ])
   const kind = () => visibleKind(local.node, local.kinds, local.marks)
   const active = () => !!kind() && !local.node.ignored
@@ -174,6 +178,20 @@ const FileTreeNode = (
       >
         {local.node.name}
       </span>
+      <Show when={local.onDelete}>
+        <button
+          type="button"
+          class="opacity-0 hover:opacity-100 shrink-0 size-4 flex items-center justify-center text-icon-weak hover:text-icon-base transition-opacity"
+          onClick={(e) => {
+            e.stopPropagation()
+            e.preventDefault()
+            local.onDelete?.(local.node)
+          }}
+          aria-label="删除文件"
+        >
+          <Icon name="close" size="small" />
+        </button>
+      </Show>
       {(() => {
         const value = kind()
         if (!value) return null
@@ -201,6 +219,7 @@ export default function FileTree(props: {
   kinds?: ReadonlyMap<string, Kind>
   draggable?: boolean
   onFileDoubleClick?: (file: FileNode) => void
+  showDelete?: boolean
 
   _filter?: Filter
   _marks?: Set<string>
@@ -209,8 +228,45 @@ export default function FileTree(props: {
   _chain?: readonly string[]
 }) {
   const file = useFile()
+  const sdk = useSDK()
   const level = props.level ?? 0
   const draggable = () => props.draggable ?? true
+  
+  const handleDelete = async (node: FileNode) => {
+    const confirmed = window.confirm(`确定要删除 ${node.name} 吗？`)
+    if (!confirmed) return
+    
+    try {
+      const response = await fetch(`/file/delete?directory=${sdk.directory}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ path: node.path }),
+      })
+      
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || "Delete failed")
+      }
+      
+      showToast({
+        variant: "success",
+        title: "删除成功",
+        description: `${node.name} 已删除`,
+      })
+      
+      // Refresh file tree
+      file.tree.refresh(node.type === "directory" ? node.path : node.path.substring(0, node.path.lastIndexOf("/")))
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error)
+      showToast({
+        variant: "error",
+        title: "删除失败",
+        description: errorMsg,
+      })
+    }
+  }
 
   const key = (p: string) =>
     file
@@ -412,6 +468,7 @@ export default function FileTree(props: {
                       draggable={draggable()}
                       kinds={kinds()}
                       marks={marks()}
+                      onDelete={props.showDelete ? handleDelete : undefined}
                       onDblClick={(e: MouseEvent) => {
                         e.stopPropagation()
                         e.preventDefault()
@@ -444,6 +501,7 @@ export default function FileTree(props: {
                         kinds={props.kinds}
                         active={props.active}
                         draggable={props.draggable}
+                        showDelete={props.showDelete}
                         _filter={filter()}
                         _marks={marks()}
                         _deeps={deeps()}
@@ -465,6 +523,7 @@ export default function FileTree(props: {
                   marks={marks()}
                   as="button"
                   type="button"
+                  onDelete={props.showDelete ? handleDelete : undefined}
                   onDblClick={() => props.onFileDoubleClick?.(node)}
                 >
                   <div class="w-4 shrink-0" />

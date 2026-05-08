@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs"
+import { readFileSync, writeFileSync, mkdirSync, existsSync, unlinkSync, statSync, readdirSync, rmdirSync } from "node:fs"
 import { dirname, join } from "node:path"
 import solidPlugin from "vite-plugin-solid"
 import tailwindcss from "@tailwindcss/vite"
@@ -115,6 +115,75 @@ export default [
             
             res.setHeader("Content-Type", "application/json")
             res.end(JSON.stringify({ success: true, path: fullPath }))
+          } catch (error) {
+            res.statusCode = 500
+            res.end(JSON.stringify({ error: error.message }))
+          }
+        } else {
+          next()
+        }
+      })
+    },
+  },
+  {
+    name: "opencode-desktop:file-delete-api",
+    configureServer(server) {
+      server.middlewares.use(async (req, res, next) => {
+        if (req.url?.startsWith("/file/delete") && req.method === "POST") {
+          try {
+            const chunks = []
+            for await (const chunk of req) {
+              chunks.push(chunk)
+            }
+            const body = JSON.parse(Buffer.concat(chunks).toString())
+            const { path: filePath } = body
+            
+            if (!filePath) {
+              res.statusCode = 400
+              res.end(JSON.stringify({ error: "Missing path" }))
+              return
+            }
+            
+            const query = new URL(req.url, "http://localhost").searchParams
+            const directory = query.get("directory")
+            
+            if (!directory) {
+              res.statusCode = 400
+              res.end(JSON.stringify({ error: "Missing directory" }))
+              return
+            }
+            
+            const fullPath = filePath.startsWith("/") ? filePath : join(directory, filePath)
+            
+            if (!existsSync(fullPath)) {
+              res.statusCode = 404
+              res.end(JSON.stringify({ error: "File not found" }))
+              return
+            }
+            
+            const stats = statSync(fullPath)
+            
+            if (stats.isDirectory()) {
+              // Recursively delete directory
+              const deleteDir = (dirPath) => {
+                const entries = readdirSync(dirPath, { withFileTypes: true })
+                for (const entry of entries) {
+                  const fullPath = join(dirPath, entry.name)
+                  if (entry.isDirectory()) {
+                    deleteDir(fullPath)
+                  } else {
+                    unlinkSync(fullPath)
+                  }
+                }
+                rmdirSync(dirPath)
+              }
+              deleteDir(fullPath)
+            } else {
+              unlinkSync(fullPath)
+            }
+            
+            res.setHeader("Content-Type", "application/json")
+            res.end(JSON.stringify({ success: true }))
           } catch (error) {
             res.statusCode = 500
             res.end(JSON.stringify({ error: error.message }))

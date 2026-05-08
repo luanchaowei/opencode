@@ -423,6 +423,7 @@ const language = useLanguage()
                           class="pt-3"
                           modified={diffFiles()}
                           kinds={kinds()}
+                          showDelete={true}
                           onFileDoubleClick={(node) => {
                             const current = prompt.current()
                             prompt.set([...current, { type: "file", path: node.path, content: "@" + node.path, start: 0, end: 0 }], prompt.cursor())
@@ -432,8 +433,57 @@ const language = useLanguage()
                     </Switch>
 
                     <div
-                      class="mt-4 p-3 border-2 border-dashed border-border-weak rounded-lg hover:border-border-base transition-colors file-upload-zone"
+                      class="mt-4 p-3 border-2 border-dashed border-border-weak rounded-lg hover:border-border-base transition-colors file-upload-zone cursor-pointer"
                       style="min-height: 80px"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        const input = document.createElement('input')
+                        input.type = 'file'
+                        input.multiple = true
+                        input.style.display = 'none'
+                        input.onchange = async (event) => {
+                          const target = event.target as HTMLInputElement
+                          const files = target.files
+                          if (!files || files.length === 0) return
+                          
+                          for (const selectedFile of Array.from(files)) {
+                            const targetPath = `${uploadDir()}/${selectedFile.name}`
+                            const formData = new FormData()
+                            formData.append("file", selectedFile)
+                            formData.append("path", targetPath)
+                            
+                            try {
+                              const response = await fetch(`/file/upload?directory=${sdk.directory}`, {
+                                method: "POST",
+                                body: formData,
+                              })
+                              
+                              if (!response.ok) {
+                                const error = await response.json()
+                                throw new Error(error.error || "Upload failed")
+                              }
+                              
+                              file.tree.refresh(uploadDir())
+                              showToast({
+                                variant: "success",
+                                title: "文件上传成功",
+                                description: `${selectedFile.name} 已保存`,
+                              })
+                            } catch (error) {
+                              const errorMsg = error instanceof Error ? error.message : String(error)
+                              showToast({
+                                variant: "error",
+                                title: language.t("toast.file.uploadFailed.title"),
+                                description: `${selectedFile.name}: ${errorMsg}`,
+                              })
+                            }
+                          }
+                          document.body.removeChild(input)
+                        }
+                        document.body.appendChild(input)
+                        input.click()
+                      }}
                       onDragEnter={(e) => {
                         e.preventDefault()
                         e.stopPropagation()
@@ -515,7 +565,7 @@ const language = useLanguage()
                     >
                       <div class="flex flex-col items-center justify-center text-text-weak">
                         <Icon name="cloud-upload" class="size-6 mb-2" />
-                        <p class="text-12-medium">拖拽文件上传</p>
+                        <p class="text-12-medium">拖拽或者点击上传文件</p>
                       </div>
                     </div>
                   </Tabs.Content>
@@ -527,8 +577,8 @@ const language = useLanguage()
                     direction="horizontal"
                     edge="start"
                     size={layout.fileTree.width()}
-                    min={200}
-                    max={480}
+                    min={250}
+                    max={600}
                     onResize={(width) => {
                       props.size.touch()
                       layout.fileTree.resize(width)

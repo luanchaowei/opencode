@@ -28,6 +28,7 @@ import { Select } from "@opencode-ai/ui/select"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { ModelSelectorPopover } from "@/components/dialog-select-model"
 import { useProviders } from "@/hooks/use-providers"
+import { showToast } from "@opencode-ai/ui/toast"
 import { useCommand } from "@/context/command"
 import { Persist, persisted } from "@/utils/persist"
 import { usePermission } from "@/context/permission"
@@ -1408,7 +1409,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
             </div>
           </div>
 
-          <div class="pointer-events-none absolute bottom-2 left-2" style={{display:"none"}}>
+          <div class="pointer-events-none absolute bottom-2 left-2">
             <div
               aria-hidden={store.mode !== "normal"}
               class="pointer-events-auto"
@@ -1422,17 +1423,64 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                 keybind={command.keybind("file.attach")}
               >
                 <Button
-                  data-action="prompt-attach"
+                  data-action="prompt-upload"
                   type="button"
                   variant="ghost"
                   class="size-8 p-0"
                   style={buttons()}
-                  onClick={pick}
+                  onClick={() => {
+                    const input = document.createElement('input')
+                    input.type = 'file'
+                    input.multiple = true
+                    input.style.display = 'none'
+                    input.onchange = async (event) => {
+                      const target = event.target as HTMLInputElement
+                      const files = target.files
+                      if (!files || files.length === 0) return
+                      
+                      const uploadDir = `uploads/${params.id || "default"}`
+                      
+                      for (const selectedFile of Array.from(files)) {
+                        const targetPath = `${uploadDir}/${selectedFile.name}`
+                        const formData = new FormData()
+                        formData.append("file", selectedFile)
+                        formData.append("path", targetPath)
+                        
+                        try {
+                          const response = await fetch(`/file/upload?directory=${sdk.directory}`, {
+                            method: "POST",
+                            body: formData,
+                          })
+                          
+                          if (!response.ok) {
+                            const error = await response.json()
+                            throw new Error(error.error || "Upload failed")
+                          }
+                          
+                          showToast({
+                            variant: "success",
+                            title: "文件上传成功",
+                            description: `${selectedFile.name} 已保存到文件树`,
+                          })
+                        } catch (error) {
+                          const errorMsg = error instanceof Error ? error.message : String(error)
+                          showToast({
+                            variant: "error",
+                            title: "上传失败",
+                            description: `${selectedFile.name}: ${errorMsg}`,
+                          })
+                        }
+                      }
+                      document.body.removeChild(input)
+                    }
+                    document.body.appendChild(input)
+                    input.click()
+                  }}
                   disabled={store.mode !== "normal"}
                   tabIndex={store.mode === "normal" ? undefined : -1}
                   aria-label={language.t("prompt.action.attachFile")}
                 >
-                  <Icon name="plus" class="size-4.5" />
+                  <Icon name="cloud-upload" class="size-4.5" />
                 </Button>
               </TooltipKeybind>
             </div>
