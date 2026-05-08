@@ -1415,6 +1415,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
               class="pointer-events-auto"
               style={{
                 "pointer-events": buttonsSpring() > 0.5 ? "auto" : "none",
+                "display": "none"
               }}
             >
               <TooltipKeybind
