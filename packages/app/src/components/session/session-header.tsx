@@ -146,6 +146,12 @@ export function SessionHeader() {
     return device.isOwnProject(directory)
   })
 
+  createEffect(() => {
+    if (!isOwnProject() && layout.fileTree.opened()) {
+      layout.fileTree.close()
+    }
+  })
+
   const project = createMemo(() => {
     const directory = projectDirectory()
     if (!directory) return
