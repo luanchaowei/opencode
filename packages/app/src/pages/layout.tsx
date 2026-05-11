@@ -2129,35 +2129,35 @@ export default function Layout(props: ParentProps) {
                     </Tooltip>
                   </div>
 
-                  <DropdownMenu modal={!sidebarHovering()}>
-                    <DropdownMenu.Trigger
-                      as={IconButton}
-                      icon="dot-grid"
-                      variant="ghost"
-                      data-action="project-menu"
-                      data-project={slug()}
-                      class="shrink-0 size-6 rounded-md transition-opacity data-[expanded]:bg-surface-base-active"
-                      classList={{
-                        "opacity-100": panelProps.mobile || merged(),
-                        "opacity-0 group-hover/project:opacity-100 group-focus-within/project:opacity-100 data-[expanded]:opacity-100":
-                          !panelProps.mobile && !merged(),
-                      }}
-                      aria-label={language.t("common.moreOptions")}
-                    />
-                    <DropdownMenu.Portal>
-                      <DropdownMenu.Content class="mt-1">
-                        <DropdownMenu.Item
-                          onSelect={() => {
-                            const item = project()
-                            if (!item) return
-                            showEditProjectDialog(item)
-                          }}
-                        >
-                          <DropdownMenu.ItemLabel>{language.t("common.edit")}</DropdownMenu.ItemLabel>
-                        </DropdownMenu.Item>
-                      </DropdownMenu.Content>
-                    </DropdownMenu.Portal>
-                  </DropdownMenu>
+                  {/*<DropdownMenu modal={!sidebarHovering()}>*/}
+                  {/*  <DropdownMenu.Trigger*/}
+                  {/*    as={IconButton}*/}
+                  {/*    icon="dot-grid"*/}
+                  {/*    variant="ghost"*/}
+                  {/*    data-action="project-menu"*/}
+                  {/*    data-project={slug()}*/}
+                  {/*    class="shrink-0 size-6 rounded-md transition-opacity data-[expanded]:bg-surface-base-active"*/}
+                  {/*    classList={{*/}
+                  {/*      "opacity-100": panelProps.mobile || merged(),*/}
+                  {/*      "opacity-0 group-hover/project:opacity-100 group-focus-within/project:opacity-100 data-[expanded]:opacity-100":*/}
+                  {/*        !panelProps.mobile && !merged(),*/}
+                  {/*    }}*/}
+                  {/*    aria-label={language.t("common.moreOptions")}*/}
+                  {/*  />*/}
+                  {/*  <DropdownMenu.Portal>*/}
+                  {/*    <DropdownMenu.Content class="mt-1">*/}
+                  {/*      <DropdownMenu.Item*/}
+                  {/*        onSelect={() => {*/}
+                  {/*          const item = project()*/}
+                  {/*          if (!item) return*/}
+                  {/*          showEditProjectDialog(item)*/}
+                  {/*        }}*/}
+                  {/*      >*/}
+                  {/*        <DropdownMenu.ItemLabel>{language.t("common.edit")}</DropdownMenu.ItemLabel>*/}
+                  {/*      </DropdownMenu.Item>*/}
+                  {/*    </DropdownMenu.Content>*/}
+                  {/*  </DropdownMenu.Portal>*/}
+                  {/*</DropdownMenu>*/}
                 </div>
               </div>
 
