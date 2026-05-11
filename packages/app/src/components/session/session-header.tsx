@@ -147,7 +147,7 @@ export function SessionHeader() {
   })
 
   createEffect(() => {
-    if (!isOwnProject() && layout.fileTree.opened()) {
+    if ((!isOwnProject() || !params.id) && layout.fileTree.opened()) {
       layout.fileTree.close()
     }
   })
@@ -387,7 +387,7 @@ export function SessionHeader() {
                 </Show>
 
                 <div class="hidden md:flex items-center gap-1 shrink-0">
-                  <Show when={tree()}>
+                  <Show when={tree() && params.id}>
                     <TooltipKeybind
                       title={language.t("command.fileTree.toggle")}
                       keybind={command.keybind("fileTree.toggle")}

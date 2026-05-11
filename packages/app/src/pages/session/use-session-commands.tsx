@@ -463,7 +463,7 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
             keybind: "mod+\\",
             onSelect: () => {
               const directory = decode64(params.dir)
-              if (!directory || !device.isOwnProject(directory)) return
+              if (!directory || !device.isOwnProject(directory) || !params.id) return
               layout.fileTree.toggle()
             },
           }),
