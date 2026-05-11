@@ -82,6 +82,7 @@ export type SessionItemProps = {
   clearHoverProjectSoon: () => void
   prefetchSession: (session: Session, priority?: "high" | "low") => void
   archiveSession: (session: Session) => Promise<void>
+  isOwnProject?: Accessor<boolean>
 }
 
 const SessionRow = (props: {
@@ -256,6 +257,7 @@ export const SessionItem = (props: SessionItemProps): JSX.Element => {
                   variant="ghost"
                   class="size-6 rounded-md"
                   aria-label={language.t("common.archive")}
+                  disabled={props.isOwnProject ? !props.isOwnProject() : false}
                   onClick={(event) => {
                     event.preventDefault()
                     event.stopPropagation()

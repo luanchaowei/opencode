@@ -30,10 +30,12 @@ import { ModelSelectorPopover } from "@/components/dialog-select-model"
 import { useProviders } from "@/hooks/use-providers"
 import { showToast } from "@opencode-ai/ui/toast"
 import { useCommand } from "@/context/command"
+import { useDevice } from "@/context/device"
 import { Persist, persisted } from "@/utils/persist"
 import { usePermission } from "@/context/permission"
 import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
+import { decode64 } from "@/utils/base64"
 import { useSessionLayout } from "@/pages/session/session-layout"
 import { createSessionTabs } from "@/pages/session/helpers"
 import { createTextFragment, getCursorPosition, setCursorPosition, setRangeEdge } from "./prompt-input/editor-dom"
@@ -102,7 +104,7 @@ const NON_EMPTY_TEXT = /[^\s\u200B]/
 
 export const PromptInput: Component<PromptInputProps> = (props) => {
   const sdk = useSDK()
-
+  const device = useDevice()
   const sync = useSync()
   const local = useLocal()
   const files = useFile()
@@ -120,6 +122,12 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   let fileInputRef: HTMLInputElement | undefined
   let scrollRef!: HTMLDivElement
   let slashPopoverRef!: HTMLDivElement
+
+  const isOwnProject = createMemo(() => {
+    const directory = decode64(params.dir)
+    if (!directory) return true
+    return device.isOwnProject(directory)
+  })
 
   const mirror = { input: false }
   const inset = 56
@@ -1236,6 +1244,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault()
       if (event.repeat) return
+      if (!isOwnProject()) return
       if (
         working() &&
         prompt
@@ -1394,11 +1403,11 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
             />
 
             <div class="flex items-center gap-1 pointer-events-auto">
-              <Tooltip placement="top" inactive={!working() && blank()} value={tip()}>
+              <Tooltip placement="top" inactive={!working() && blank() && isOwnProject()} value={isOwnProject() ? tip() : language.t("prompt.readonly.message")}>
                 <IconButton
                   data-action="prompt-submit"
                   type="submit"
-                  disabled={!working() && blank()}
+                  disabled={!working() && (blank() || !isOwnProject())}
                   tabIndex={store.mode === "normal" ? undefined : -1}
                   icon={stopping() ? "stop" : store.mode === "shell" ? "arrow-undo-down" : "arrow-up"}
                   variant="primary"

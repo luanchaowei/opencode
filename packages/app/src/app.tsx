@@ -28,6 +28,7 @@ import {
 import { Dynamic } from "solid-js/web"
 import { CommandProvider } from "@/context/command"
 import { CommentsProvider } from "@/context/comments"
+import { DeviceProvider } from "@/context/device"
 import { FileProvider } from "@/context/file"
 import { GlobalSDKProvider } from "@/context/global-sdk"
 import { GlobalSyncProvider } from "@/context/global-sync"
@@ -89,8 +90,9 @@ function QueryProvider(props: ParentProps) {
 function AppShellProviders(props: ParentProps) {
   return (
     <SettingsProvider>
-      <PermissionProvider>
-        <LayoutProvider>
+      <DeviceProvider>
+        <PermissionProvider>
+          <LayoutProvider>
           <NotificationProvider>
             <ModelsProvider>
               <CommandProvider>
@@ -101,7 +103,8 @@ function AppShellProviders(props: ParentProps) {
             </ModelsProvider>
           </NotificationProvider>
         </LayoutProvider>
-      </PermissionProvider>
+        </PermissionProvider>
+      </DeviceProvider>
     </SettingsProvider>
   )
 }

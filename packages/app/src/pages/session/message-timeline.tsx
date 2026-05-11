@@ -23,6 +23,7 @@ import { SessionContextUsage } from "@/components/session-context-usage"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { createResizeObserver } from "@solid-primitives/resize-observer"
 import { useLanguage } from "@/context/language"
+import { useDevice } from "@/context/device"
 import { useSessionKey } from "@/pages/session/session-layout"
 import { useGlobalSDK } from "@/context/global-sdk"
 import { usePlatform } from "@/context/platform"
@@ -31,6 +32,7 @@ import { useSDK } from "@/context/sdk"
 import { useSync } from "@/context/sync"
 import { messageAgentColor } from "@/utils/agent"
 import { sessionTitle } from "@/utils/session-title"
+import { decode64 } from "@/utils/base64"
 import { parseCommentNote, readCommentMetadata } from "@/utils/comment-note"
 import { makeTimer } from "@solid-primitives/timer"
 
@@ -239,8 +241,15 @@ export function MessageTimeline(props: {
   const settings = useSettings()
   const dialog = useDialog()
   const language = useLanguage()
+  const device = useDevice()
   const { params, sessionKey } = useSessionKey()
   const platform = usePlatform()
+
+  const isOwnProject = createMemo(() => {
+    const directory = decode64(params.dir)
+    if (!directory) return true
+    return device.isOwnProject(directory)
+  })
 
   const rendered = createMemo(() => props.renderedUserMessages.map((message) => message.id))
   const sessionID = createMemo(() => params.id)
@@ -836,6 +845,7 @@ export function MessageTimeline(props: {
                               }}
                               aria-label={language.t("common.moreOptions")}
                               aria-expanded={title.menuOpen || share.open || title.pendingShare}
+                              disabled={!isOwnProject()}
                               ref={(el: HTMLButtonElement) => {
                                 more = el
                               }}

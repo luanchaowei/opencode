@@ -12,14 +12,13 @@ import { createEffect, createMemo, createSignal, For, onMount, Show } from "soli
 import { createStore } from "solid-js/store"
 import { Portal } from "solid-js/web"
 import { useCommand } from "@/context/command"
+import { useDevice } from "@/context/device"
 import { useLanguage } from "@/context/language"
 import { useLayout } from "@/context/layout"
 import { usePlatform } from "@/context/platform"
 import { useServer } from "@/context/server"
 import { useSettings } from "@/context/settings"
 import { useSync } from "@/context/sync"
-import { useTerminal } from "@/context/terminal"
-import { focusTerminalById } from "@/pages/session/helpers"
 import { useSessionLayout } from "@/pages/session/session-layout"
 import { messageAgentColor } from "@/utils/agent"
 import { decode64 } from "@/utils/base64"
@@ -137,10 +136,16 @@ export function SessionHeader() {
   const language = useLanguage()
   const settings = useSettings()
   const sync = useSync()
-  const terminal = useTerminal()
+  const device = useDevice()
   const { params, view } = useSessionLayout()
 
   const projectDirectory = createMemo(() => decode64(params.dir) ?? "")
+  const isOwnProject = createMemo(() => {
+    const directory = projectDirectory()
+    if (!directory) return true
+    return device.isOwnProject(directory)
+  })
+
   const project = createMemo(() => {
     const directory = projectDirectory()
     if (!directory) return
@@ -156,7 +161,6 @@ export function SessionHeader() {
   const isDesktopBeta = platform.platform === "desktop" && import.meta.env.VITE_OPENCODE_CHANNEL === "beta"
   const search = createMemo(() => !isDesktopBeta || settings.general.showSearch())
   const tree = createMemo(() => !isDesktopBeta || settings.general.showFileTree())
-  const term = createMemo(() => !isDesktopBeta || settings.general.showTerminal())
   const status = createMemo(() => !(import.meta.env.VITE_DISABLE_BUTTON) && (!isDesktopBeta || settings.general.showStatus()))
   // const status = createMemo(() => false)
 
@@ -205,16 +209,6 @@ export function SessionHeader() {
     ] as const
   })
 
-  const toggleTerminal = () => {
-    const next = !view().terminal.opened()
-    view().terminal.toggle()
-    if (!next) return
-
-    const id = terminal.active()
-    if (!id) return
-    focusTerminalById(id)
-  }
-
   const [prefs, setPrefs] = persisted(Persist.global("open.app"), createStore({ app: "finder" as OpenApp }))
   const [menu, setMenu] = createStore({ open: false })
   const [openRequest, setOpenRequest] = createStore({
@@ -252,22 +246,6 @@ export function SessionHeader() {
       .finally(() => {
         setOpenRequest("app", undefined)
       })
-  }
-
-  const copyPath = () => {
-    const directory = projectDirectory()
-    if (!directory) return
-    navigator.clipboard
-      .writeText(directory)
-      .then(() => {
-        showToast({
-          variant: "success",
-          icon: "circle-check",
-          title: language.t("session.share.copy.copied"),
-          description: directory,
-        })
-      })
-      .catch((err: unknown) => showRequestError(language, err))
   }
 
   const [centerMount, setCenterMount] = createSignal<HTMLElement | null>(null)
@@ -315,24 +293,7 @@ export function SessionHeader() {
             <div class="flex items-center gap-2">
               <Show when={projectDirectory()}>
                 <div class="hidden xl:flex items-center">
-                  <Show
-                    when={canOpen()}
-                    fallback={
-                      <div class="flex h-[24px] box-border items-center rounded-md border border-border-weak-base bg-surface-panel overflow-hidden">
-                        <Button
-                          variant="ghost"
-                          class="rounded-none h-full py-0 pr-3 pl-0.5 gap-1.5 border-none shadow-none"
-                          onClick={copyPath}
-                          aria-label={language.t("session.header.open.copyPath")}
-                        >
-                          <Icon name="copy" size="small" class="text-icon-base" />
-                          <span class="text-12-regular text-text-strong">
-                            {language.t("session.header.open.copyPath")}
-                          </span>
-                        </Button>
-                      </div>
-                    }
-                  >
+                  <Show when={canOpen()}>
                     <div class="flex items-center">
                       <div class="flex h-[24px] box-border items-center rounded-md border border-border-weak-base bg-surface-panel overflow-hidden">
                         <Button
@@ -404,20 +365,6 @@ export function SessionHeader() {
                                   </For>
                                 </DropdownMenu.RadioGroup>
                               </DropdownMenu.Group>
-                              <DropdownMenu.Separator />
-                              <DropdownMenu.Item
-                                onSelect={() => {
-                                  setMenu("open", false)
-                                  copyPath()
-                                }}
-                              >
-                                <div class="flex size-5 shrink-0 items-center justify-center">
-                                  <Icon name="copy" size="small" class="text-icon-weak" />
-                                </div>
-                                <DropdownMenu.ItemLabel>
-                                  {language.t("session.header.open.copyPath")}
-                                </DropdownMenu.ItemLabel>
-                              </DropdownMenu.Item>
                             </DropdownMenu.Content>
                           </DropdownMenu.Portal>
                         </DropdownMenu>
@@ -432,47 +379,13 @@ export function SessionHeader() {
                     <StatusPopover />
                   </Tooltip>
                 </Show>
-                <Show when={term()}>
-                  <TooltipKeybind
-                    title={language.t("command.terminal.toggle")}
-                    keybind={command.keybind("terminal.toggle")}
-                  >
-                    <Button
-                      variant="ghost"
-                      class="group/terminal-toggle titlebar-icon w-8 h-6 p-0 box-border shrink-0"
-                      onClick={toggleTerminal}
-                      aria-label={language.t("command.terminal.toggle")}
-                      aria-expanded={view().terminal.opened()}
-                      aria-controls="terminal-panel"
-                      disabled={import.meta.env.VITE_DISABLE_BUTTON}
-                    >
-                      <Icon size="small" name={view().terminal.opened() ? "terminal-active" : "terminal"} />
-                    </Button>
-                  </TooltipKeybind>
-                </Show>
 
                 <div class="hidden md:flex items-center gap-1 shrink-0">
-                  <TooltipKeybind
-                    title={language.t("command.review.toggle")}
-                    keybind={command.keybind("review.toggle")}
-                  >
-                    <Button
-                      variant="ghost"
-                      class="group/review-toggle titlebar-icon w-8 h-6 p-0 box-border"
-                      onClick={() => view().reviewPanel.toggle()}
-                      aria-label={language.t("command.review.toggle")}
-                      aria-expanded={view().reviewPanel.opened()}
-                      aria-controls="review-panel"
-                      disabled={import.meta.env.VITE_DISABLE_BUTTON}
-                    >
-                      <Icon size="small" name={view().reviewPanel.opened() ? "review-active" : "review"} />
-                    </Button>
-                  </TooltipKeybind>
-
                   <Show when={tree()}>
                     <TooltipKeybind
                       title={language.t("command.fileTree.toggle")}
                       keybind={command.keybind("fileTree.toggle")}
+                      inactive={!isOwnProject()}
                     >
                       <Button
                         variant="ghost"
@@ -481,7 +394,7 @@ export function SessionHeader() {
                         aria-label={language.t("command.fileTree.toggle")}
                         aria-expanded={layout.fileTree.opened()}
                         aria-controls="file-tree-panel"
-                        // disabled={import.meta.env.VITE_DISABLE_BUTTON}
+                        disabled={!isOwnProject()}
                       >
                         <div class="relative flex items-center justify-center size-4">
                           <Icon

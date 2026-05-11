@@ -14,6 +14,7 @@ import { Spinner } from "@opencode-ai/ui/spinner"
 import { Tooltip } from "@opencode-ai/ui/tooltip"
 import { type Session } from "@opencode-ai/sdk/v2/client"
 import { type LocalProject } from "@/context/layout"
+import { useDevice } from "@/context/device"
 import { loadSessionsQuery, useGlobalSync } from "@/context/global-sync"
 import { useLanguage } from "@/context/language"
 import { NewSessionItem, SessionItem, SessionSkeleton } from "./sidebar-items"
@@ -152,6 +153,7 @@ const WorkspaceActions = (props: {
   root: string
   clearHoverProjectSoon: WorkspaceSidebarContext["clearHoverProjectSoon"]
   navigateToNewSession: () => void
+  isOwnProject: Accessor<boolean>
 }): JSX.Element => (
   <div
     class="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5 transition-opacity"
@@ -176,6 +178,7 @@ const WorkspaceActions = (props: {
           data-action="workspace-menu"
           data-workspace={base64Encode(props.directory)}
           aria-label={props.language.t("common.moreOptions")}
+          disabled={!props.isOwnProject()}
         />
       </Tooltip>
       <DropdownMenu.Portal>
@@ -242,6 +245,7 @@ const WorkspaceSessionList = (props: {
   hasMore: Accessor<boolean>
   loadMore: () => Promise<void>
   language: ReturnType<typeof useLanguage>
+  isOwnProject?: Accessor<boolean>
 }): JSX.Element => (
   <nav class="flex flex-col gap-1">
     <Show when={props.showNew()}>
@@ -268,6 +272,7 @@ const WorkspaceSessionList = (props: {
           clearHoverProjectSoon={props.ctx.clearHoverProjectSoon}
           prefetchSession={props.ctx.prefetchSession}
           archiveSession={props.ctx.archiveSession}
+          isOwnProject={props.isOwnProject}
         />
       )}
     </For>
@@ -300,12 +305,16 @@ export const SortableWorkspace = (props: {
   const params = useParams()
   const globalSync = useGlobalSync()
   const language = useLanguage()
+  const device = useDevice()
   const sortable = createSortable(props.directory)
   const [workspaceStore, setWorkspaceStore] = globalSync.child(props.directory, { bootstrap: false })
   const [menu, setMenu] = createStore({
     open: false,
     pendingRename: false,
   })
+
+  const isOwnProject = createMemo(() => device.isOwnProject(props.project.worktree))
+
   const slug = createMemo(() => base64Encode(props.directory))
   const sessions = createMemo(() => sortedRootSessions(workspaceStore, props.sortNow()))
   const local = createMemo(() => props.directory === props.project.worktree)
@@ -415,6 +424,7 @@ export const SortableWorkspace = (props: {
                 root={props.project.worktree}
                 clearHoverProjectSoon={props.ctx.clearHoverProjectSoon}
                 navigateToNewSession={() => navigate(`/${slug()}/session`)}
+                isOwnProject={isOwnProject}
               />
             </div>
           </div>
@@ -431,6 +441,7 @@ export const SortableWorkspace = (props: {
             hasMore={hasMore}
             loadMore={loadMore}
             language={language}
+            isOwnProject={isOwnProject}
           />
         </Collapsible.Content>
       </Collapsible>
@@ -446,10 +457,14 @@ export const LocalWorkspace = (props: {
 }): JSX.Element => {
   const globalSync = useGlobalSync()
   const language = useLanguage()
+  const device = useDevice()
   const workspace = createMemo(() => {
     const [store, setStore] = globalSync.child(props.project.worktree)
     return { store, setStore }
   })
+
+  const isOwnProject = createMemo(() => device.isOwnProject(props.project.worktree))
+
   const slug = createMemo(() => base64Encode(props.project.worktree))
   const sessions = createMemo(() => sortedRootSessions(workspace().store, props.sortNow()))
   const count = createMemo(() => sessions()?.length ?? 0)
@@ -476,6 +491,7 @@ export const LocalWorkspace = (props: {
         hasMore={hasMore}
         loadMore={loadMore}
         language={language}
+        isOwnProject={isOwnProject}
       />
     </div>
   )

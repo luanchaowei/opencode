@@ -1,6 +1,7 @@
 import { useNavigate } from "@solidjs/router"
 import { useCommand, type CommandOption } from "@/context/command"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
+import { useDevice } from "@/context/device"
 import { previewSelectedLines } from "@opencode-ai/ui/pierre/selection-bridge"
 import { useFile, selectionFromLines, type FileSelection, type SelectedLineRange } from "@/context/file"
 import { useLanguage } from "@/context/language"
@@ -19,6 +20,7 @@ import { createSessionTabs } from "@/pages/session/helpers"
 import { extractPromptFromParts } from "@/utils/prompt"
 import { UserMessage } from "@opencode-ai/sdk/v2"
 import { useSessionLayout } from "@/pages/session/session-layout"
+import { decode64 } from "@/utils/base64"
 
 export type SessionCommandContext = {
   navigateMessageByOffset: (offset: number) => void
@@ -48,6 +50,7 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
   const sync = useSync()
   const terminal = useTerminal()
   const layout = useLayout()
+  const device = useDevice()
   const navigate = useNavigate()
   const { params, tabs, view } = useSessionLayout()
 
@@ -452,26 +455,17 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
   ]
 
   const viewCmds = () => [
-    viewCommand({
-      id: "terminal.toggle",
-      title: language.t("command.terminal.toggle"),
-      keybind: "ctrl+`",
-      slash: "terminal",
-      onSelect: () => view().terminal.toggle(),
-    }),
-    viewCommand({
-      id: "review.toggle",
-      title: language.t("command.review.toggle"),
-      keybind: "mod+shift+r",
-      onSelect: () => view().reviewPanel.toggle(),
-    }),
     ...(shown()
       ? [
           viewCommand({
             id: "fileTree.toggle",
             title: language.t("command.fileTree.toggle"),
             keybind: "mod+\\",
-            onSelect: () => layout.fileTree.toggle(),
+            onSelect: () => {
+              const directory = decode64(params.dir)
+              if (!directory || !device.isOwnProject(directory)) return
+              layout.fileTree.toggle()
+            },
           }),
         ]
       : []),

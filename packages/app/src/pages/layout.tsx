@@ -57,6 +57,7 @@ import { Worktree as WorktreeState } from "@/utils/worktree"
 import { setSessionHandoff } from "@/pages/session/handoff"
 
 import { useDialog } from "@opencode-ai/ui/context/dialog"
+import { useDevice } from "@/context/device"
 import { useTheme, type ColorScheme } from "@opencode-ai/ui/theme/context"
 import { useCommand, type CommandOption } from "@/context/command"
 import { ConstrainDragXAxis, getDraggableId } from "@/utils/solid-dnd"
@@ -126,6 +127,7 @@ export default function Layout(props: ParentProps) {
   const command = useCommand()
   const theme = useTheme()
   const language = useLanguage()
+  const device = useDevice()
   const initialDirectory = decode64(params.dir)
   const location = useLocation()
   const route = createMemo(() => {
@@ -968,6 +970,9 @@ export default function Layout(props: ParentProps) {
   }
 
   function navigateProjectByOffset(offset: number) {
+    const currentDirectory = decode64(params.dir)
+    if (currentDirectory && !device.isOwnProject(currentDirectory)) return
+    
     const projects = layout.projects.list()
     if (projects.length === 0) return
 
@@ -1047,13 +1052,6 @@ export default function Layout(props: ParentProps) {
         category: language.t("command.category.view"),
         keybind: "mod+b",
         onSelect: () => layout.sidebar.toggle(),
-      },
-      {
-        id: "project.open",
-        title: language.t("command.project.open"),
-        category: language.t("command.category.project"),
-        keybind: "mod+o",
-        onSelect: () => chooseProject(),
       },
       {
         id: "project.previous",
@@ -1477,36 +1475,6 @@ export default function Layout(props: ParentProps) {
       if (dialogDead || dialogRun !== run) return
       dialog.show(() => <x.DialogEditProject project={project} />)
     })
-  }
-
-  async function chooseProject() {
-    function resolve(result: string | string[] | null) {
-      if (Array.isArray(result)) {
-        for (const directory of result) {
-          void openProject(directory, false)
-        }
-        void navigateToProject(result[0])
-      } else if (result) {
-        void openProject(result)
-      }
-    }
-
-    if (platform.openDirectoryPickerDialog && server.isLocal()) {
-      const result = await platform.openDirectoryPickerDialog?.({
-        title: language.t("command.project.open"),
-        multiple: true,
-      })
-      resolve(result)
-    } else {
-      const run = ++dialogRun
-      void import("@/components/dialog-select-directory").then((x) => {
-        if (dialogDead || dialogRun !== run) return
-        dialog.show(
-          () => <x.DialogSelectDirectory multiple={true} onSelect={resolve} />,
-          () => resolve(null),
-        )
-      })
-    }
   }
 
   const deleteWorkspace = async (root: string, directory: string, leaveDeletedWorkspace = false) => {
@@ -2122,9 +2090,6 @@ export default function Layout(props: ParentProps) {
                       {language.t("sidebar.empty.description")}
                     </div>
                   </div>
-                  <Button size="large" icon="folder-add-left" onClick={chooseProject}>
-                    {language.t("command.project.open")}
-                  </Button>
                 </div>
               </div>
             </Show>
@@ -2189,44 +2154,6 @@ export default function Layout(props: ParentProps) {
                           }}
                         >
                           <DropdownMenu.ItemLabel>{language.t("common.edit")}</DropdownMenu.ItemLabel>
-                        </DropdownMenu.Item>
-                        <DropdownMenu.Item
-                          data-action="project-workspaces-toggle"
-                          data-project={slug()}
-                          disabled={!canToggle()}
-                          onSelect={() => {
-                            const item = project()
-                            if (!item) return
-                            toggleProjectWorkspaces(item)
-                          }}
-                        >
-                          <DropdownMenu.ItemLabel>
-                            {workspacesEnabled()
-                              ? language.t("sidebar.workspaces.disable")
-                              : language.t("sidebar.workspaces.enable")}
-                          </DropdownMenu.ItemLabel>
-                        </DropdownMenu.Item>
-                        <DropdownMenu.Item
-                          data-action="project-clear-notifications"
-                          data-project={slug()}
-                          disabled={unseenCount() === 0}
-                          onSelect={clearNotifications}
-                        >
-                          <DropdownMenu.ItemLabel>
-                            {language.t("sidebar.project.clearNotifications")}
-                          </DropdownMenu.ItemLabel>
-                        </DropdownMenu.Item>
-                        <DropdownMenu.Separator />
-                        <DropdownMenu.Item
-                          data-action="project-close-menu"
-                          data-project={slug()}
-                          onSelect={() => {
-                            const dir = worktree()
-                            if (!dir) return
-                            closeProject(dir)
-                          }}
-                        >
-                          <DropdownMenu.ItemLabel>{language.t("common.close")}</DropdownMenu.ItemLabel>
                         </DropdownMenu.Item>
                       </DropdownMenu.Content>
                     </DropdownMenu.Portal>
@@ -2356,7 +2283,7 @@ export default function Layout(props: ParentProps) {
     )
   }
 
-  const projects = () => layout.projects.list()
+  const projects = () => layout.projects.list().filter((p) => device.isOwnProject(p.worktree))
   const projectOverlay = () => <ProjectDragOverlay projects={projects} activeProject={() => store.activeProject} />
   const sidebarContent = (mobile?: boolean) => (
     <SidebarContent
@@ -2370,9 +2297,6 @@ export default function Layout(props: ParentProps) {
       handleDragStart={handleDragStart}
       handleDragEnd={handleDragEnd}
       handleDragOver={handleDragOver}
-      openProjectLabel={language.t("command.project.open")}
-      openProjectKeybind={() => command.keybind("project.open")}
-      onOpenProject={chooseProject}
       renderProjectOverlay={projectOverlay}
       settingsLabel={() => language.t("sidebar.settings")}
       settingsKeybind={() => command.keybind("settings.open")}
