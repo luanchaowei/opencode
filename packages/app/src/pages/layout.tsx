@@ -457,12 +457,15 @@ export default function Layout(props: ParentProps) {
         }
 
         if (e.details?.type !== "permission.asked" && e.details?.type !== "question.asked") return
+        
+        const directory = e.name
+        if (!device.isOwnProject(directory)) return
+        
         const title =
           e.details.type === "permission.asked"
             ? language.t("notification.permission.title")
             : language.t("notification.question.title")
         const icon = e.details.type === "permission.asked" ? ("checklist" as const) : ("bubble-5" as const)
-        const directory = e.name
         const props = e.details.properties
         if (e.details.type === "permission.asked" && permission.autoResponds(e.details.properties, directory)) return
 
