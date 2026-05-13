@@ -486,21 +486,6 @@ export default function Layout(props: ParentProps) {
         if (now - lastAlerted < cooldownMs) return
         alertedAtBySession.set(sessionKey, now)
 
-        if (e.details.type === "permission.asked") {
-          if (settings.sounds.permissionsEnabled()) {
-            void playSoundById(settings.sounds.permissions())
-          }
-          if (settings.notifications.permissions()) {
-            void platform.notify(title, description, href)
-          }
-        }
-
-        if (e.details.type === "question.asked") {
-          if (settings.notifications.agent()) {
-            void platform.notify(title, description, href)
-          }
-        }
-
         const currentSession = params.id
         if (workspaceKey(directory) === workspaceKey(currentDir()) && props.sessionID === currentSession) return
         if (workspaceKey(directory) === workspaceKey(currentDir()) && session?.parentID === currentSession) return
