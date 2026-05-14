@@ -294,6 +294,8 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
   const undo = async () => {
     const sessionID = params.id
     if (!sessionID) return
+    const dir = directory()
+    if (!dir || !device.isOwnProject(dir)) return
 
     if (status().type !== "idle") {
       await sdk.client.session.abort({ sessionID }).catch(() => {})
@@ -317,6 +319,8 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
   const redo = async () => {
     const sessionID = params.id
     if (!sessionID) return
+    const dir = directory()
+    if (!dir || !device.isOwnProject(dir)) return
 
     const revertMessageID = info()?.revert?.messageID
     if (!revertMessageID) return
@@ -338,6 +342,8 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
   const compact = async () => {
     const sessionID = params.id
     if (!sessionID) return
+    const dir = directory()
+    if (!dir || !device.isOwnProject(dir)) return
 
     const model = local.model.current()
     if (!model) {

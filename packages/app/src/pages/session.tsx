@@ -41,8 +41,10 @@ import { useSDK } from "@/context/sdk"
 import { useSettings } from "@/context/settings"
 import { useSync } from "@/context/sync"
 import { useTerminal } from "@/context/terminal"
+import { useDevice } from "@/context/device"
 import { type FollowupDraft, sendFollowupDraft } from "@/components/prompt-input/submit"
 import { createSessionComposerState, SessionComposerRegion } from "@/pages/session/composer"
+import { decode64 } from "@/utils/base64"
 import {
   createOpenReviewFile,
   createSessionTabs,
@@ -332,6 +334,7 @@ export default function Page() {
   const prompt = usePrompt()
   const comments = useComments()
   const terminal = useTerminal()
+  const device = useDevice()
   const [searchParams, setSearchParams] = useSearchParams<{ prompt?: string }>()
   const { params, sessionKey, tabs, view } = useSessionLayout()
 
@@ -1690,11 +1693,15 @@ export default function Page() {
 
   const revert = (input: { sessionID: string; messageID: string }) => {
     if (reverting()) return
+    const dir = decode64(params.dir)
+    if (!dir || !device.isOwnProject(dir)) return
     return revertMutation.mutateAsync(input)
   }
 
   const restore = (id: string) => {
     if (!params.id || reverting()) return
+    const dir = decode64(params.dir)
+    if (!dir || !device.isOwnProject(dir)) return
     return restoreMutation.mutateAsync(id)
   }
 

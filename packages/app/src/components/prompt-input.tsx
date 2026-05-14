@@ -1149,7 +1149,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
         return
       }
 
-      if (working()) {
+      if (working() && isOwnProject()) {
         void abort()
         event.preventDefault()
         event.stopPropagation()
@@ -1215,7 +1215,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
         event.preventDefault()
         return
       }
-      if (working()) {
+      if (working() && isOwnProject()) {
         void abort()
         event.preventDefault()
       }
@@ -1407,7 +1407,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                 <IconButton
                   data-action="prompt-submit"
                   type="submit"
-                  disabled={!working() && (blank() || !isOwnProject())}
+                  disabled={!isOwnProject() || (!working() && blank())}
                   tabIndex={store.mode === "normal" ? undefined : -1}
                   icon={stopping() ? "stop" : store.mode === "shell" ? "arrow-undo-down" : "arrow-up"}
                   variant="primary"
