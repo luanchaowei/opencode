@@ -446,10 +446,15 @@ export const dict = {
   "toast.file.deleteSuccess.description": "{{filename}} deleted",
   "toast.file.deleteFailed.title": "Delete failed",
   "toast.file.deleteFailed.description": "{{filename}}: {{error}}",
+  "toast.file.downloadSuccess.title": "File downloaded successfully",
+  "toast.file.downloadSuccess.description": "{{filename}} downloaded",
+  "toast.file.downloadFailed.title": "Download failed",
+  "toast.file.downloadFailed.description": "{{filename}}: {{error}}",
   
   "session.files.uploadHint": "Drag or click to upload files",
   "file.delete.confirm": "Are you sure you want to delete {{filename}}?",
   "file.delete.label": "Delete file",
+  "file.download.label": "Download file",
 
   "toast.context.noLineSelection.title": "No line selection",
   "toast.context.noLineSelection.description": "Select a line range in a file tab first.",

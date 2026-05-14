@@ -18,6 +18,7 @@ import FileTree from "@/components/file-tree"
 import { SessionContextUsage } from "@/components/session-context-usage"
 import { SessionContextTab, SortableTab, FileVisual } from "@/components/session"
 import { useCommand } from "@/context/command"
+import { useDevice } from "@/context/device"
 import { useFile, type SelectedLineRange } from "@/context/file"
 import { useLanguage } from "@/context/language"
 import { useLayout } from "@/context/layout"
@@ -27,6 +28,7 @@ import { useSync } from "@/context/sync"
 import { usePrompt } from "@/context/prompt"
 import { useParams } from "@solidjs/router"
 import { useSDK } from "@/context/sdk"
+import { decode64 } from "@/utils/base64"
 import { createFileTabListSync } from "@/pages/session/file-tab-scroll"
 import { FileTabContent } from "@/pages/session/file-tabs"
 import { createOpenSessionFileTab, createSessionTabs, getTabReorderIndex, type Sizing } from "@/pages/session/helpers"
@@ -57,11 +59,18 @@ const language = useLanguage()
   const params = useParams()
   const prompt = usePrompt()
   const sdk = useSDK()
+  const device = useDevice()
   const { sessionKey, tabs, view } = useSessionLayout()
 
   const isDesktop = createMediaQuery("(min-width: 768px)")
   const sessionID = createMemo(() => params.id || "default")
   const uploadDir = createMemo(() => `uploads/${sessionID()}`)
+  
+  const isOwnProject = createMemo(() => {
+    const directory = decode64(params.dir)
+    if (!directory) return true
+    return device.isOwnProject(directory)
+  })
   
   // Ensure upload directory exists
   createEffect(() => {
@@ -442,6 +451,7 @@ const language = useLanguage()
                           modified={diffFiles()}
                           kinds={kinds()}
                           showDelete={true}
+                          isOwnProject={isOwnProject()}
                           onFileDoubleClick={(node) => {
                             const current = prompt.current()
                             prompt.set([...current, { type: "file", path: node.path, content: "@" + node.path, start: 0, end: 0 }], prompt.cursor())

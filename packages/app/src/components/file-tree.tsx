@@ -1,6 +1,7 @@
 import { useFile } from "@/context/file"
 import { encodeFilePath } from "@/context/file/path"
 import { Collapsible } from "@opencode-ai/ui/collapsible"
+import { DropdownMenu } from "@opencode-ai/ui/dropdown-menu"
 import { FileIcon } from "@opencode-ai/ui/file-icon"
 import { Icon } from "@opencode-ai/ui/icon"
 import { showToast } from "@opencode-ai/ui/toast"
@@ -14,10 +15,10 @@ import {
   splitProps,
   Switch,
   untrack,
+  createSignal,
   type ComponentProps,
   type ParentProps,
 } from "solid-js"
-import { Dynamic } from "solid-js/web"
 import type { FileNode } from "@opencode-ai/sdk/v2"
 import { useSDK } from "@/context/sdk"
 import { useLanguage } from "@/context/language"
@@ -112,8 +113,7 @@ const withFileDragImage = (event: DragEvent) => {
 
 const FileTreeNode = (
   p: ParentProps &
-    ComponentProps<"div"> &
-    ComponentProps<"button"> & {
+    ComponentProps<"div"> & {
       node: FileNode
       level: number
       active?: string
@@ -121,8 +121,9 @@ const FileTreeNode = (
       draggable: boolean
       kinds?: ReadonlyMap<string, Kind>
       marks?: Set<string>
-      as?: "div" | "button"
       onDelete?: (node: FileNode) => void
+      onDownload?: (node: FileNode) => void
+      isOwnProject?: boolean
       language?: { t: (key: string, params?: any) => string }
     },
 ) => {
@@ -134,11 +135,12 @@ const FileTreeNode = (
     "draggable",
     "kinds",
     "marks",
-    "as",
     "children",
     "class",
     "classList",
     "onDelete",
+    "onDownload",
+    "isOwnProject",
     "language",
   ])
   const kind = () => visibleKind(local.node, local.kinds, local.marks)
@@ -149,66 +151,93 @@ const FileTreeNode = (
     return kindTextColor(value)
   }
 
+  const [menuOpen, setMenuOpen] = createSignal(false)
+
+  const handleContextMenu = (e: MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setMenuOpen(true)
+  }
+
   return (
-    <Dynamic
-      component={local.as ?? "div"}
-      classList={{
-        "w-full min-w-0 h-6 flex items-center justify-start gap-x-1.5 rounded-md px-1.5 py-0 text-left hover:bg-surface-raised-base-hover active:bg-surface-base-active transition-colors cursor-pointer": true,
-        "bg-surface-base-active": local.node.path === local.active,
-        ...local.classList,
-        [local.class ?? ""]: !!local.class,
-        [local.nodeClass ?? ""]: !!local.nodeClass,
-      }}
-      style={`padding-left: ${Math.max(0, 8 + local.level * 12 - (local.node.type === "file" ? 24 : 4))}px`}
-      draggable={local.draggable}
-      onDragStart={(event: DragEvent) => {
-        if (!local.draggable) return
-        event.dataTransfer?.setData("text/plain", `file:${local.node.path}`)
-        event.dataTransfer?.setData("text/uri-list", pathToFileUrl(local.node.path))
-        if (event.dataTransfer) event.dataTransfer.effectAllowed = "copy"
-        withFileDragImage(event)
-      }}
-      {...rest}
+    <DropdownMenu
+      modal={false}
+      open={menuOpen()}
+      onOpenChange={setMenuOpen}
     >
-      {local.children}
-      <span
+      <DropdownMenu.Trigger
+        as="div"
         classList={{
-          "flex-1 min-w-0 text-12-medium whitespace-nowrap truncate": true,
-          "text-text-weaker": local.node.ignored,
-          "text-text-weak": !local.node.ignored && !active(),
+          "w-full min-w-0 h-6 flex items-center justify-start gap-x-1.5 rounded-md px-1.5 py-0 text-left hover:bg-surface-raised-base-hover active:bg-surface-base-active transition-colors cursor-pointer": true,
+          "bg-surface-base-active": local.node.path === local.active,
+          ...local.classList,
+          [local.class ?? ""]: !!local.class,
+          [local.nodeClass ?? ""]: !!local.nodeClass,
         }}
-        style={active() ? color() : undefined}
-        title={local.node.name}
+        style={`padding-left: ${Math.max(0, 8 + local.level * 12 - (local.node.type === "file" ? 24 : 4))}px`}
+        draggable={local.draggable}
+        onDragStart={(event: DragEvent) => {
+          if (!local.draggable) return
+          event.dataTransfer?.setData("text/plain", `file:${local.node.path}`)
+          event.dataTransfer?.setData("text/uri-list", pathToFileUrl(local.node.path))
+          if (event.dataTransfer) event.dataTransfer.effectAllowed = "copy"
+          withFileDragImage(event)
+        }}
+        onContextMenu={handleContextMenu}
+        {...rest}
       >
-        {local.node.name}
-      </span>
-      <Show when={local.onDelete}>
-        <button
-          type="button"
-          class="opacity-0 hover:opacity-100 shrink-0 size-4 flex items-center justify-center text-icon-weak hover:text-icon-base transition-opacity"
-          onClick={(e) => {
-            e.stopPropagation()
-            e.preventDefault()
-            local.onDelete?.(local.node)
+        {local.children}
+        <span
+          classList={{
+            "flex-1 min-w-0 text-12-medium whitespace-nowrap truncate": true,
+            "text-text-weaker": local.node.ignored,
+            "text-text-weak": !local.node.ignored && !active(),
           }}
-          aria-label={local.language?.t("file.delete.label") || "Delete file"}
+          style={active() ? color() : undefined}
+          title={local.node.name}
         >
-          <Icon name="close" size="small" />
-        </button>
-      </Show>
-      {(() => {
-        const value = kind()
-        if (!value) return null
-        if (local.node.type === "file") {
-          return (
-            <span class="shrink-0 w-4 text-center text-12-medium" style={kindTextColor(value)}>
-              {kindLabel(value)}
-            </span>
-          )
-        }
-        return <div class="shrink-0 size-1.5 mr-1.5 rounded-full" style={kindDotColor(value)} />
-      })()}
-    </Dynamic>
+          {local.node.name}
+        </span>
+        {(() => {
+          const value = kind()
+          if (!value) return null
+          if (local.node.type === "file") {
+            return (
+              <span class="shrink-0 w-4 text-center text-12-medium" style={kindTextColor(value)}>
+                {kindLabel(value)}
+              </span>
+            )
+          }
+          return <div class="shrink-0 size-1.5 mr-1.5 rounded-full" style={kindDotColor(value)} />
+        })()}
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Content class="min-w-[120px]">
+          <Show when={local.node.type === "file" && local.onDownload}>
+            <DropdownMenu.Item onSelect={() => local.onDownload?.(local.node)}>
+              <div class="flex items-center gap-2">
+                <Icon name="download" size="small" class="text-icon-weak" />
+                <DropdownMenu.ItemLabel>{local.language?.t("file.download.label") || "Download"}</DropdownMenu.ItemLabel>
+              </div>
+            </DropdownMenu.Item>
+          </Show>
+          <Show when={local.onDelete}>
+            <DropdownMenu.Item
+              disabled={!local.isOwnProject}
+              onSelect={() => {
+                if (!local.isOwnProject) return
+                local.onDelete?.(local.node)
+              }}
+            >
+              <div class="flex items-center gap-2">
+                <Icon name="trash" size="small" class="text-icon-weak" />
+                <DropdownMenu.ItemLabel>{local.language?.t("file.delete.label") || "Delete"}</DropdownMenu.ItemLabel>
+              </div>
+            </DropdownMenu.Item>
+          </Show>
+        </DropdownMenu.Content>
+      </DropdownMenu.Portal>
+    </DropdownMenu>
   )
 }
 
@@ -224,6 +253,7 @@ export default function FileTree(props: {
   draggable?: boolean
   onFileDoubleClick?: (file: FileNode) => void
   showDelete?: boolean
+  isOwnProject?: boolean
 
   _filter?: Filter
   _marks?: Set<string>
@@ -237,6 +267,40 @@ export default function FileTree(props: {
   const level = props.level ?? 0
   const draggable = () => props.draggable ?? true
   
+  const handleDownload = async (node: FileNode) => {
+    try {
+      const response = await fetch(`/file/download?directory=${sdk.directory}&path=${encodeURIComponent(node.path)}`)
+      
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || "Download failed")
+      }
+      
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = node.name
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      
+      showToast({
+        variant: "success",
+        title: language.t("toast.file.downloadSuccess.title"),
+        description: language.t("toast.file.downloadSuccess.description", { filename: node.name }),
+      })
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error)
+      showToast({
+        variant: "error",
+        title: language.t("toast.file.downloadFailed.title"),
+        description: language.t("toast.file.downloadFailed.description", { filename: node.name, error: errorMsg }),
+      })
+    }
+  }
+
   const handleDelete = async (node: FileNode) => {
     const confirmed = window.confirm(language.t("file.delete.confirm", { filename: node.name }))
     if (!confirmed) return
@@ -475,6 +539,7 @@ export default function FileTree(props: {
                       marks={marks()}
                       language={language}
                       onDelete={props.showDelete ? handleDelete : undefined}
+                      isOwnProject={props.isOwnProject}
                       onDblClick={(e: MouseEvent) => {
                         e.stopPropagation()
                         e.preventDefault()
@@ -508,6 +573,7 @@ export default function FileTree(props: {
                         active={props.active}
                         draggable={props.draggable}
                         showDelete={props.showDelete}
+                        isOwnProject={props.isOwnProject}
                         _filter={filter()}
                         _marks={marks()}
                         _deeps={deeps()}
@@ -519,7 +585,7 @@ export default function FileTree(props: {
                 </Collapsible>
               </Match>
               <Match when={node.type === "file"}>
-<FileTreeNode
+                <FileTreeNode
                   node={node}
                   level={level + 1}
                   draggable={false}
@@ -527,10 +593,10 @@ export default function FileTree(props: {
                   nodeClass={props.nodeClass}
                   kinds={kinds()}
                   marks={marks()}
-                  as="button"
-                  type="button"
                   language={language}
                   onDelete={props.showDelete ? handleDelete : undefined}
+                  onDownload={handleDownload}
+                  isOwnProject={props.isOwnProject}
                   onDblClick={() => props.onFileDoubleClick?.(node)}
                 >
                   <div class="w-4 shrink-0" />

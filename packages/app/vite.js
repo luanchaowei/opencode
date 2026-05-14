@@ -208,6 +208,60 @@ export default [
     },
   },
   {
+    name: "opencode-desktop:file-download-api",
+    configureServer(server) {
+      server.middlewares.use(async (req, res, next) => {
+        if (req.url?.startsWith("/file/download") && req.method === "GET") {
+          try {
+            const query = new URL(req.url, "http://localhost").searchParams
+            const filePath = query.get("path")
+            const directory = query.get("directory")
+            
+            if (!filePath) {
+              res.statusCode = 400
+              res.end(JSON.stringify({ error: "Missing path" }))
+              return
+            }
+            
+            if (!directory) {
+              res.statusCode = 400
+              res.end(JSON.stringify({ error: "Missing directory" }))
+              return
+            }
+            
+            const fullPath = filePath.startsWith("/") ? filePath : join(directory, filePath)
+            
+            if (!existsSync(fullPath)) {
+              res.statusCode = 404
+              res.end(JSON.stringify({ error: "File not found" }))
+              return
+            }
+            
+            const stats = statSync(fullPath)
+            if (stats.isDirectory()) {
+              res.statusCode = 400
+              res.end(JSON.stringify({ error: "Path is a directory, not a file" }))
+              return
+            }
+            
+            const fileContent = readFileSync(fullPath)
+            const filename = filePath.split("/").pop() || "download"
+            
+            res.setHeader("Content-Type", "application/octet-stream")
+            res.setHeader("Content-Disposition", `attachment; filename="${filename}"`)
+            res.setHeader("Content-Length", fileContent.length)
+            res.end(fileContent)
+          } catch (error) {
+            res.statusCode = 500
+            res.end(JSON.stringify({ error: error.message }))
+          }
+        } else {
+          next()
+        }
+      })
+    },
+  },
+  {
     name: "opencode-desktop:file-delete-api",
     configureServer(server) {
       server.middlewares.use(async (req, res, next) => {
