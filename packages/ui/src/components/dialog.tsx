@@ -24,7 +24,9 @@ export function Dialog(props: DialogProps) {
   const handleMouseDown = (e: MouseEvent) => {
     if (!props.draggable) return
     const target = e.target as HTMLElement
-    if (target.closest("button, [role='button'], input, [data-slot='dialog-title']")) return
+    const header = target.closest("[data-slot='dialog-header']")
+    if (!header) return
+    if (target.closest("button, [role='button'], input")) return
     
     setDragging(true)
     dragStart = {
@@ -67,9 +69,8 @@ export function Dialog(props: DialogProps) {
     >
       <div 
         data-slot="dialog-container"
-        style={props.draggable && (position().x !== 0 || position().y !== 0) ? {
-          "margin-left": `${position().x}px`,
-          "margin-top": `${position().y}px`,
+        style={props.draggable ? {
+          transform: `translate(calc(-50% + ${position().x}px), calc(-50% + ${position().y}px))`,
         } : undefined}
       >
         <Kobalte.Content

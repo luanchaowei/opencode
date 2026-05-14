@@ -381,7 +381,7 @@ export function DialogSelectFile(props: { mode?: DialogSelectFileMode; onOpenFil
   })
 
   return (
-    <Dialog fit class="pt-3 pb-0" transition>
+    <Dialog title={language.t("palette.search.title")} fit draggable class="pt-3 pb-0" transition>
       <List
         search={{
           placeholder: filesOnly()

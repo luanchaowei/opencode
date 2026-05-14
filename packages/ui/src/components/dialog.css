@@ -136,6 +136,12 @@
 }
 
 [data-component="dialog"][data-draggable] {
+  [data-slot="dialog-container"] {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+  }
+
   [data-slot="dialog-header"] {
     user-select: none;
   }
