@@ -19,6 +19,7 @@ import { makeEventListener } from "@solid-primitives/event-listener"
 import { createMediaQuery } from "@solid-primitives/media"
 import { createResizeObserver } from "@solid-primitives/resize-observer"
 import { useLocal } from "@/context/local"
+import { useGlobalSDK } from "@/context/global-sdk"
 import { selectionFromLines, useFile, type FileSelection, type SelectedLineRange } from "@/context/file"
 import { createStore } from "solid-js/store"
 import { ResizeHandle } from "@opencode-ai/ui/resize-handle"
@@ -29,7 +30,7 @@ import { previewSelectedLines } from "@opencode-ai/ui/pierre/selection-bridge"
 import { Button } from "@opencode-ai/ui/button"
 import { showToast } from "@opencode-ai/ui/toast"
 import { checksum } from "@opencode-ai/core/util/encode"
-import { useSearchParams } from "@solidjs/router"
+import { useNavigate, useSearchParams } from "@solidjs/router"
 import { NewSessionView, SessionHeader } from "@/components/session"
 import { useComments } from "@/context/comments"
 import { getSessionPrefetch, SESSION_PREFETCH_TTL } from "@/context/global-sync/session-prefetch"
@@ -322,6 +323,7 @@ function createSessionHistoryWindow(input: SessionHistoryWindowInput) {
 
 export default function Page() {
   const globalSync = useGlobalSync()
+  const globalSDK = useGlobalSDK()
   const layout = useLayout()
   const local = useLocal()
   const file = useFile()
@@ -335,8 +337,47 @@ export default function Page() {
   const comments = useComments()
   const terminal = useTerminal()
   const device = useDevice()
+  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams<{ prompt?: string }>()
   const { params, sessionKey, tabs, view } = useSessionLayout()
+  
+  // Auto-open first session or create "default" session when entering project without session id
+  let defaultSessionCreating = false
+  createEffect(
+    on(
+      () => !params.id && sync.ready && device.isOwnProject(sdk.directory),
+      (shouldCreate) => {
+        if (!shouldCreate) return
+        if (defaultSessionCreating) return
+        
+        defaultSessionCreating = true
+        untrack(async () => {
+          const sessions = sync.data.session.filter(s => !s.time.archived)
+          
+          if (sessions.length > 0) {
+            // Open first existing session
+            const firstSession = sessions[0]
+            navigate(`/${params.dir}/session/${firstSession.id}`, { replace: true })
+          } else {
+            // Create "default" session if no sessions exist
+            try {
+              const created = await globalSDK.client.session.create({
+                directory: sdk.directory,
+                title: "default",
+              }).then(x => x.data)
+              
+              if (created) {
+                navigate(`/${params.dir}/session/${created.id}`, { replace: true })
+              }
+            } catch (err) {
+              console.error("Failed to create default session:", err)
+              defaultSessionCreating = false
+            }
+          }
+        })
+      }
+    )
+  )
 
   createEffect(() => {
     if (!prompt.ready()) return

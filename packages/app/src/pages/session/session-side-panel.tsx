@@ -62,9 +62,9 @@ const language = useLanguage()
   const device = useDevice()
   const { sessionKey, tabs, view } = useSessionLayout()
 
-  const isDesktop = createMediaQuery("(min-width: 768px)")
-  const sessionID = createMemo(() => params.id || "default")
-  const uploadDir = createMemo(() => `uploads/${sessionID()}`)
+const isDesktop = createMediaQuery("(min-width: 768px)")
+  const sessionID = createMemo(() => params.id)
+  const uploadDir = createMemo(() => sessionID() ? `uploads/${sessionID()}` : undefined)
   
   const isOwnProject = createMemo(() => {
     const directory = decode64(params.dir)
@@ -72,22 +72,21 @@ const language = useLanguage()
     return device.isOwnProject(directory)
   })
   
-  // Ensure upload directory exists
+  // Ensure upload directory exists (only when we have a real session id)
   createEffect(() => {
     const dir = uploadDir()
-    if (dir && sdk.directory) {
-      const fullPath = `${sdk.directory}/${dir}`
-      fetch('/directory/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: fullPath }),
+    if (!dir || !sdk.directory) return
+    
+    const fullPath = `${sdk.directory}/${dir}`
+    fetch('/directory/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: fullPath }),
+    })
+      .then(() => {
+        file.tree.list(dir, { force: true }).catch(() => {})
       })
-        .then(() => {
-          // Refresh file tree after directory is created
-          file.tree.list(dir, { force: true }).catch(() => {})
-        })
-        .catch(() => {})
-    }
+      .catch(() => {})
   })
   const shown = createMemo(
     () =>
@@ -443,75 +442,78 @@ const language = useLanguage()
                   </Tabs.List>
                   <Tabs.Content value="all" class="bg-background-stronger px-3 py-0">
                     <Switch>
-                      <Match when={nofiles()}>{empty(language.t("session.files.empty"))}</Match>
-                      <Match when={true}>
-                        <FileTree
-                          path={uploadDir()}
-                          class="pt-3"
-                          modified={diffFiles()}
-                          kinds={kinds()}
-                          showDelete={true}
-                          isOwnProject={isOwnProject()}
-                          onFileDoubleClick={(node) => {
-                            const current = prompt.current()
-                            prompt.set([...current, { type: "file", path: node.path, content: "@" + node.path, start: 0, end: 0 }], prompt.cursor())
-                          }}
-                        />
-                      </Match>
+<Match when={nofiles()}>{empty(language.t("session.files.empty"))}</Match>
+                       <Match when={uploadDir()}>
+                         <FileTree
+                           path={uploadDir()!}
+                           class="pt-3"
+                           modified={diffFiles()}
+                           kinds={kinds()}
+                           showDelete={true}
+                           isOwnProject={isOwnProject()}
+                           onFileDoubleClick={(node) => {
+                             const current = prompt.current()
+                             prompt.set([...current, { type: "file", path: node.path, content: "@" + node.path, start: 0, end: 0 }], prompt.cursor())
+                           }}
+                         />
+                       </Match>
                     </Switch>
 
                     <div
                       class="mt-4 p-3 border-2 border-dashed border-border-weak rounded-lg hover:border-border-base transition-colors file-upload-zone cursor-pointer"
                       style="min-height: 80px"
-                      onClick={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        const input = document.createElement('input')
-                        input.type = 'file'
-                        input.multiple = true
-                        input.style.display = 'none'
-                        input.onchange = async (event) => {
-                          const target = event.target as HTMLInputElement
-                          const files = target.files
-                          if (!files || files.length === 0) return
-                          
-                          for (const selectedFile of Array.from(files)) {
-                            const targetPath = `${uploadDir()}/${selectedFile.name}`
-                            const formData = new FormData()
-                            formData.append("file", selectedFile)
-                            formData.append("path", targetPath)
-                            
-                            try {
-                              const response = await fetch(`/file/upload?directory=${sdk.directory}`, {
-                                method: "POST",
-                                body: formData,
-                              })
-                              
-                              if (!response.ok) {
-                                const error = await response.json()
-                                throw new Error(error.error || "Upload failed")
-                              }
-                              
-                              file.tree.refresh(uploadDir())
-                              showToast({
-                                variant: "success",
-                                title: language.t("toast.file.uploadSuccess.title"),
-                                description: language.t("toast.file.uploadSuccess.description", { filename: selectedFile.name }),
-                              })
-                            } catch (error) {
-                              const errorMsg = error instanceof Error ? error.message : String(error)
-                              showToast({
-                                variant: "error",
-                                title: language.t("toast.file.uploadFailed.title"),
-                                description: `${selectedFile.name}: ${errorMsg}`,
-                              })
-                            }
-                          }
-                          document.body.removeChild(input)
-                        }
-                        document.body.appendChild(input)
-                        input.click()
-                      }}
+onClick={(e) => {
+                         e.preventDefault()
+                         e.stopPropagation()
+                         const dir = uploadDir()
+                         if (!dir) return
+                         
+                         const input = document.createElement('input')
+                         input.type = 'file'
+                         input.multiple = true
+                         input.style.display = 'none'
+                         input.onchange = async (event) => {
+                           const target = event.target as HTMLInputElement
+                           const files = target.files
+                           if (!files || files.length === 0) return
+                           
+                           for (const selectedFile of Array.from(files)) {
+                             const targetPath = `${dir}/${selectedFile.name}`
+                             const formData = new FormData()
+                             formData.append("file", selectedFile)
+                             formData.append("path", targetPath)
+                             
+                             try {
+                               const response = await fetch(`/file/upload?directory=${sdk.directory}`, {
+                                 method: "POST",
+                                 body: formData,
+                               })
+                               
+                               if (!response.ok) {
+                                 const error = await response.json()
+                                 throw new Error(error.error || "Upload failed")
+                               }
+                               
+                               file.tree.refresh(dir)
+                               showToast({
+                                 variant: "success",
+                                 title: language.t("toast.file.uploadSuccess.title"),
+                                 description: language.t("toast.file.uploadSuccess.description", { filename: selectedFile.name }),
+                               })
+                             } catch (error) {
+                               const errorMsg = error instanceof Error ? error.message : String(error)
+                               showToast({
+                                 variant: "error",
+                                 title: language.t("toast.file.uploadFailed.title"),
+                                 description: `${selectedFile.name}: ${errorMsg}`,
+                               })
+                             }
+                           }
+                           document.body.removeChild(input)
+                         }
+                         document.body.appendChild(input)
+                         input.click()
+                       }}
                       onDragEnter={(e) => {
                         e.preventDefault()
                         e.stopPropagation()
@@ -536,60 +538,63 @@ const language = useLanguage()
                           document.body.removeAttribute("data-prevent-drag-overlay")
                         }
                       }}
-                      onDrop={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        e.stopImmediatePropagation()
+onDrop={(e) => {
+                         e.preventDefault()
+                         e.stopPropagation()
+                         e.stopImmediatePropagation()
 
-                        document.body.setAttribute("data-drop-completed", "true")
-                        document.body.removeAttribute("data-upload-zone-active")
-                        document.body.removeAttribute("data-prevent-drag-overlay")
+                         document.body.setAttribute("data-drop-completed", "true")
+                         document.body.removeAttribute("data-upload-zone-active")
+                         document.body.removeAttribute("data-prevent-drag-overlay")
 
-                        const files = Array.from(e.dataTransfer!.files)
-                        if (files.length === 0) return
+                         const dir = uploadDir()
+                         if (!dir) return
+                         
+                         const files = Array.from(e.dataTransfer!.files)
+                         if (files.length === 0) return
 
-                        for (const droppedFile of files) {
-                          const targetPath = `${uploadDir()}/${droppedFile.name}`
+                         for (const droppedFile of files) {
+                           const targetPath = `${dir}/${droppedFile.name}`
 
-                          const formData = new FormData()
-                          formData.append("file", droppedFile)
-                          formData.append("path", targetPath)
+                           const formData = new FormData()
+                           formData.append("file", droppedFile)
+                           formData.append("path", targetPath)
 
-                          fetch(`/file/upload?directory=${sdk.directory}`, {
-                            method: "POST",
-                            body: formData,
-                          })
-                            .then(async (response) => {
-                              if (!response.ok) {
-                                const error = await response.json()
-                                throw new Error(error.error || "Upload failed")
-                              }
-                              return response.json()
-                            })
-                            .then(() => {
-                              file.tree.refresh(uploadDir())
-                              showToast({
-                                variant: "success",
-                                title: language.t("toast.file.uploadSuccess.title"),
-                                description: language.t("toast.file.uploadSuccess.description", { filename: droppedFile.name }),
-                              })
-                              setTimeout(() => {
-                                document.body.removeAttribute("data-drop-completed")
-                              }, 100)
-                            })
-                            .catch((error) => {
-                              const errorMsg = error instanceof Error ? error.message : String(error)
-                              showToast({
-                                variant: "error",
-                                title: language.t("toast.file.uploadFailed.title"),
-                                description: `${droppedFile.name}: ${errorMsg}`,
-                              })
-                              setTimeout(() => {
-                                document.body.removeAttribute("data-drop-completed")
-                              }, 100)
-                            })
-                        }
-                      }}
+                           fetch(`/file/upload?directory=${sdk.directory}`, {
+                             method: "POST",
+                             body: formData,
+                           })
+                             .then(async (response) => {
+                               if (!response.ok) {
+                                 const error = await response.json()
+                                 throw new Error(error.error || "Upload failed")
+                               }
+                               return response.json()
+                             })
+                             .then(() => {
+                               file.tree.refresh(dir)
+                               showToast({
+                                 variant: "success",
+                                 title: language.t("toast.file.uploadSuccess.title"),
+                                 description: language.t("toast.file.uploadSuccess.description", { filename: droppedFile.name }),
+                               })
+                               setTimeout(() => {
+                                 document.body.removeAttribute("data-drop-completed")
+                               }, 100)
+                             })
+                             .catch((error) => {
+                               const errorMsg = error instanceof Error ? error.message : String(error)
+                               showToast({
+                                 variant: "error",
+                                 title: language.t("toast.file.uploadFailed.title"),
+                                 description: `${droppedFile.name}: ${errorMsg}`,
+                               })
+                               setTimeout(() => {
+                                 document.body.removeAttribute("data-drop-completed")
+                               }, 100)
+                             })
+                         }
+                       }}
                     >
                       <div class="flex flex-col items-center justify-center text-text-weak">
                         <Icon name="cloud-upload" class="size-6 mb-2" />

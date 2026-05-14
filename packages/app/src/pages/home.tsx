@@ -26,12 +26,12 @@ export default function Home() {
   const recent = createMemo(() => {
     return sync.data.project
       .slice()
-      .sort((a, b) => (b.time.updated ?? b.time.updated) - (a.time.updated ?? b.time.updated))
+      .sort((a, b) => (b.time.updated ?? b.time.updated) - (a.time.updated ?? a.time.updated))
       .slice(0, 5)
   })
   const defaultDir = import.meta.env.VITE_OPENCODE_DEFAULT_DIR
   
-createEffect(async () => {
+  createEffect(async () => {
     if (!defaultDir || !sync.ready) return
     
     try {
@@ -53,6 +53,8 @@ createEffect(async () => {
       
       layout.projects.open(deviceDir)
       server.projects.touch(deviceDir)
+      
+      // Navigate to the project (default session creation will happen in session.tsx)
       navigate(`/${base64Encode(deviceDir)}`, { replace: true })
     } catch (error) {
       const baseDir = defaultDir.startsWith("~") ? defaultDir.replace("~", sync.data.path.home) : defaultDir
@@ -66,6 +68,8 @@ createEffect(async () => {
       
       layout.projects.open(baseDir)
       server.projects.touch(baseDir)
+      
+      // Navigate to the project (default session creation will happen in session.tsx)
       navigate(`/${base64Encode(baseDir)}`, { replace: true })
     }
   })
