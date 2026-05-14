@@ -151,8 +151,8 @@ const FileTreeNode = (
     return kindTextColor(value)
   }
 
-  const [menuOpen, setMenuOpen] = createSignal(false)
-
+const [menuOpen, setMenuOpen] = createSignal(false)
+  
   const handleContextMenu = (e: MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
@@ -163,7 +163,10 @@ const FileTreeNode = (
     <DropdownMenu
       modal={false}
       open={menuOpen()}
-      onOpenChange={setMenuOpen}
+      onOpenChange={(open) => {
+        // Only close via this callback, never open (we open via context menu)
+        if (!open) setMenuOpen(false)
+      }}
     >
       <DropdownMenu.Trigger
         as="div"
@@ -182,6 +185,11 @@ const FileTreeNode = (
           event.dataTransfer?.setData("text/uri-list", pathToFileUrl(local.node.path))
           if (event.dataTransfer) event.dataTransfer.effectAllowed = "copy"
           withFileDragImage(event)
+        }}
+        onClick={(e) => {
+          // Prevent DropdownMenu.Trigger from opening menu on click
+          e.stopPropagation()
+          e.preventDefault()
         }}
         onContextMenu={handleContextMenu}
         {...rest}
@@ -212,9 +220,15 @@ const FileTreeNode = (
         })()}
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
-        <DropdownMenu.Content class="min-w-[120px]">
+        <DropdownMenu.Content 
+          class="min-w-[120px]"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
           <Show when={local.node.type === "file" && local.onDownload}>
-            <DropdownMenu.Item onSelect={() => local.onDownload?.(local.node)}>
+            <DropdownMenu.Item onSelect={() => {
+              local.onDownload?.(local.node)
+              setMenuOpen(false)
+            }}>
               <div class="flex items-center gap-2">
                 <Icon name="download" size="small" class="text-icon-weak" />
                 <DropdownMenu.ItemLabel>{local.language?.t("file.download.label") || "Download"}</DropdownMenu.ItemLabel>
@@ -227,6 +241,7 @@ const FileTreeNode = (
               onSelect={() => {
                 if (!local.isOwnProject) return
                 local.onDelete?.(local.node)
+                setMenuOpen(false)
               }}
             >
               <div class="flex items-center gap-2">
