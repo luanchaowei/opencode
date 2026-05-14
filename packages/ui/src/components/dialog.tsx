@@ -1,5 +1,5 @@
 import { Dialog as Kobalte } from "@kobalte/core/dialog"
-import { ComponentProps, JSXElement, Match, ParentProps, Show, Switch } from "solid-js"
+import { ComponentProps, createEffect, createSignal, JSXElement, Match, onCleanup, ParentProps, Show, Switch } from "solid-js"
 import { useI18n } from "../context/i18n"
 import { IconButton } from "./icon-button"
 
@@ -12,18 +12,66 @@ export interface DialogProps extends ParentProps {
   classList?: ComponentProps<"div">["classList"]
   fit?: boolean
   transition?: boolean
+  draggable?: boolean
 }
 
 export function Dialog(props: DialogProps) {
   const i18n = useI18n()
+  const [position, setPosition] = createSignal({ x: 0, y: 0 })
+  const [dragging, setDragging] = createSignal(false)
+  let dragStart = { x: 0, y: 0 }
+
+  const handleMouseDown = (e: MouseEvent) => {
+    if (!props.draggable) return
+    const target = e.target as HTMLElement
+    if (target.closest("button, [role='button'], input, [data-slot='dialog-title']")) return
+    
+    setDragging(true)
+    dragStart = {
+      x: e.clientX - position().x,
+      y: e.clientY - position().y,
+    }
+    e.preventDefault()
+  }
+
+  createEffect(() => {
+    if (!dragging()) return
+    
+    const handleMouseMove = (e: MouseEvent) => {
+      setPosition({
+        x: e.clientX - dragStart.x,
+        y: e.clientY - dragStart.y,
+      })
+    }
+    
+    const handleMouseUp = () => {
+      setDragging(false)
+    }
+    
+    window.addEventListener("mousemove", handleMouseMove)
+    window.addEventListener("mouseup", handleMouseUp)
+    
+    onCleanup(() => {
+      window.removeEventListener("mousemove", handleMouseMove)
+      window.removeEventListener("mouseup", handleMouseUp)
+    })
+  })
+
   return (
     <div
       data-component="dialog"
       data-fit={props.fit ? true : undefined}
       data-size={props.size || "normal"}
       data-transition={props.transition ? true : undefined}
+      data-draggable={props.draggable ? true : undefined}
     >
-      <div data-slot="dialog-container">
+      <div 
+        data-slot="dialog-container"
+        style={props.draggable && (position().x !== 0 || position().y !== 0) ? {
+          "margin-left": `${position().x}px`,
+          "margin-top": `${position().y}px`,
+        } : undefined}
+      >
         <Kobalte.Content
           data-slot="dialog-content"
           data-no-header={!props.title && !props.action ? "" : undefined}
@@ -41,7 +89,11 @@ export function Dialog(props: DialogProps) {
           }}
         >
           <Show when={props.title || props.action}>
-            <div data-slot="dialog-header">
+            <div 
+              data-slot="dialog-header"
+              onMouseDown={handleMouseDown}
+              style={props.draggable ? { cursor: "move" } : undefined}
+            >
               <Show when={props.title}>
                 <Kobalte.Title data-slot="dialog-title">{props.title}</Kobalte.Title>
               </Show>

@@ -18,7 +18,9 @@ import {
   createSignal,
   type ComponentProps,
   type ParentProps,
+  type Component,
 } from "solid-js"
+import { Dynamic } from "solid-js/web"
 import type { FileNode } from "@opencode-ai/sdk/v2"
 import { useSDK } from "@/context/sdk"
 import { useLanguage } from "@/context/language"
@@ -125,6 +127,7 @@ const FileTreeNode = (
       onDownload?: (node: FileNode) => void
       isOwnProject?: boolean
       language?: { t: (key: string, params?: any) => string }
+      as?: string | Component
     },
 ) => {
   const [local, rest] = splitProps(p, [
@@ -142,6 +145,7 @@ const FileTreeNode = (
     "onDownload",
     "isOwnProject",
     "language",
+    "as",
   ])
   const kind = () => visibleKind(local.node, local.kinds, local.marks)
   const active = () => !!kind() && !local.node.ignored
@@ -151,25 +155,20 @@ const FileTreeNode = (
     return kindTextColor(value)
   }
 
-const [menuOpen, setMenuOpen] = createSignal(false)
-  
+  const [menuOpen, setMenuOpen] = createSignal(false)
+  const [menuPosition, setMenuPosition] = createSignal({ x: 0, y: 0 })
+
   const handleContextMenu = (e: MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
+    setMenuPosition({ x: e.clientX, y: e.clientY })
     setMenuOpen(true)
   }
 
   return (
-    <DropdownMenu
-      modal={false}
-      open={menuOpen()}
-      onOpenChange={(open) => {
-        // Only close via this callback, never open (we open via context menu)
-        if (!open) setMenuOpen(false)
-      }}
-    >
-      <DropdownMenu.Trigger
-        as="div"
+    <>
+      <Dynamic
+        component={local.as ?? "div"}
         classList={{
           "w-full min-w-0 h-6 flex items-center justify-start gap-x-1.5 rounded-md px-1.5 py-0 text-left hover:bg-surface-raised-base-hover active:bg-surface-base-active transition-colors cursor-pointer": true,
           "bg-surface-base-active": local.node.path === local.active,
@@ -185,11 +184,6 @@ const [menuOpen, setMenuOpen] = createSignal(false)
           event.dataTransfer?.setData("text/uri-list", pathToFileUrl(local.node.path))
           if (event.dataTransfer) event.dataTransfer.effectAllowed = "copy"
           withFileDragImage(event)
-        }}
-        onClick={(e) => {
-          // Prevent DropdownMenu.Trigger from opening menu on click
-          e.stopPropagation()
-          e.preventDefault()
         }}
         onContextMenu={handleContextMenu}
         {...rest}
@@ -218,41 +212,52 @@ const [menuOpen, setMenuOpen] = createSignal(false)
           }
           return <div class="shrink-0 size-1.5 mr-1.5 rounded-full" style={kindDotColor(value)} />
         })()}
-      </DropdownMenu.Trigger>
-      <DropdownMenu.Portal>
-        <DropdownMenu.Content 
-          class="min-w-[120px]"
-          onOpenAutoFocus={(e) => e.preventDefault()}
+      </Dynamic>
+      <Show when={menuOpen()}>
+        <DropdownMenu
+          modal={false}
+          open={true}
+          onOpenChange={(open) => {
+            if (!open) setMenuOpen(false)
+          }}
         >
-          <Show when={local.node.type === "file" && local.onDownload}>
-            <DropdownMenu.Item onSelect={() => {
-              local.onDownload?.(local.node)
-              setMenuOpen(false)
-            }}>
-              <div class="flex items-center gap-2">
-                <Icon name="download" size="small" class="text-icon-weak" />
-                <DropdownMenu.ItemLabel>{local.language?.t("file.download.label") || "Download"}</DropdownMenu.ItemLabel>
-              </div>
-            </DropdownMenu.Item>
-          </Show>
-          <Show when={local.onDelete}>
-            <DropdownMenu.Item
-              disabled={!local.isOwnProject}
-              onSelect={() => {
-                if (!local.isOwnProject) return
-                local.onDelete?.(local.node)
-                setMenuOpen(false)
-              }}
+          <DropdownMenu.Portal>
+            <DropdownMenu.Content
+              class="min-w-[120px]"
+              style={`position: fixed; left: ${menuPosition().x}px; top: ${menuPosition().y}px;`}
+              onOpenAutoFocus={(e) => e.preventDefault()}
             >
-              <div class="flex items-center gap-2">
-                <Icon name="trash" size="small" class="text-icon-weak" />
-                <DropdownMenu.ItemLabel>{local.language?.t("file.delete.label") || "Delete"}</DropdownMenu.ItemLabel>
-              </div>
-            </DropdownMenu.Item>
-          </Show>
-        </DropdownMenu.Content>
-      </DropdownMenu.Portal>
-    </DropdownMenu>
+              <Show when={local.node.type === "file" && local.onDownload}>
+                <DropdownMenu.Item onSelect={() => {
+                  local.onDownload?.(local.node)
+                  setMenuOpen(false)
+                }}>
+                  <div class="flex items-center gap-2">
+                    <Icon name="download" size="small" class="text-icon-weak" />
+                    <DropdownMenu.ItemLabel>{local.language?.t("file.download.label") || "Download"}</DropdownMenu.ItemLabel>
+                  </div>
+                </DropdownMenu.Item>
+              </Show>
+              <Show when={local.onDelete}>
+                <DropdownMenu.Item
+                  disabled={!local.isOwnProject}
+                  onSelect={() => {
+                    if (!local.isOwnProject) return
+                    local.onDelete?.(local.node)
+                    setMenuOpen(false)
+                  }}
+                >
+                  <div class="flex items-center gap-2">
+                    <Icon name="trash" size="small" class="text-icon-weak" />
+                    <DropdownMenu.ItemLabel>{local.language?.t("file.delete.label") || "Delete"}</DropdownMenu.ItemLabel>
+                  </div>
+                </DropdownMenu.Item>
+              </Show>
+            </DropdownMenu.Content>
+          </DropdownMenu.Portal>
+        </DropdownMenu>
+      </Show>
+    </>
   )
 }
 

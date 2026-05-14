@@ -66,7 +66,7 @@ export const DialogNewSession: Component<DialogNewSessionProps> = (props) => {
   }
   
   return (
-    <Dialog title={language.t("dialog.newSession.title")} fit class="w-full max-w-[400px] mx-auto">
+    <Dialog title={language.t("dialog.newSession.title")} fit draggable class="w-full max-w-[400px] mx-auto">
       <div class="flex flex-col gap-4 p-4 pt-0">
         <TextField
           autofocus

@@ -135,6 +135,12 @@
   }
 }
 
+[data-component="dialog"][data-draggable] {
+  [data-slot="dialog-header"] {
+    user-select: none;
+  }
+}
+
 [data-component="dialog"][data-transition] [data-slot="dialog-content"] {
   animation: contentHide 100ms ease-in forwards;
 
