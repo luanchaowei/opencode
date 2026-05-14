@@ -220,6 +220,7 @@ export const dict = {
   "common.loading": "Loading",
   "common.loading.ellipsis": "...",
   "common.cancel": "Cancel",
+  "common.create": "Create",
   "common.open": "Open",
   "common.connect": "Connect",
   "common.disconnect": "Disconnect",
@@ -307,8 +308,12 @@ export const dict = {
   "mcp.status.needs_auth": "needs auth",
   "mcp.status.disabled": "disabled",
 
-  "dialog.fork.empty": "No messages to fork from",
-
+"dialog.fork.empty": "No messages to fork from",
+  
+  "dialog.newSession.title": "New Session",
+  "dialog.newSession.nameLabel": "Session Name",
+  "dialog.newSession.namePlaceholder": "Enter session name",
+  
   "dialog.directory.search.placeholder": "Search folders",
   "dialog.directory.empty": "No folders found",
 
@@ -462,6 +467,8 @@ export const dict = {
   "toast.session.share.copyFailed.title": "Failed to copy URL to clipboard",
   "toast.session.share.success.title": "Session shared",
   "toast.session.share.success.description": "Share URL copied to clipboard!",
+  "toast.session.nameRequired.title": "Session name required",
+  "toast.session.nameRequired.description": "Please enter a session name",
   "toast.session.share.failed.title": "Failed to share session",
   "toast.session.share.failed.description": "An error occurred while sharing the session",
 

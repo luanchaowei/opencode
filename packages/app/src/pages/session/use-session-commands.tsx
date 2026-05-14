@@ -21,6 +21,7 @@ import { extractPromptFromParts } from "@/utils/prompt"
 import { UserMessage } from "@opencode-ai/sdk/v2"
 import { useSessionLayout } from "@/pages/session/session-layout"
 import { decode64 } from "@/utils/base64"
+import { DialogNewSession } from "@/components/dialog-new-session"
 
 export type SessionCommandContext = {
   navigateMessageByOffset: (offset: number) => void
@@ -53,6 +54,7 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
   const device = useDevice()
   const navigate = useNavigate()
   const { params, tabs, view } = useSessionLayout()
+  const directory = () => params.dir ? decode64(params.dir) : undefined
 
   const info = () => {
     const id = params.id
@@ -387,9 +389,12 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
     sessionCommand({
       id: "session.new",
       title: language.t("command.session.new"),
-      keybind: "mod+shift+s",
-      slash: "new",
-      onSelect: () => navigate(`/${params.dir}/session`),
+      disabled: !directory() || !device.isOwnProject(directory()!),
+      onSelect: () => {
+        const dir = directory()
+        if (!dir) return
+        dialog.show(() => <DialogNewSession directory={dir} />)
+      },
     }),
     sessionCommand({
       id: "session.undo",
@@ -462,8 +467,7 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
             title: language.t("command.fileTree.toggle"),
             keybind: "mod+\\",
             onSelect: () => {
-              const directory = decode64(params.dir)
-              if (!directory || !device.isOwnProject(directory) || !params.id) return
+              if (!directory() || !device.isOwnProject(directory()!) || !params.id) return
               layout.fileTree.toggle()
             },
           }),

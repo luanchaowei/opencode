@@ -6,13 +6,17 @@ import { Icon } from "@opencode-ai/ui/icon"
 import { Button } from "@opencode-ai/ui/button"
 import { Tooltip, TooltipKeybind } from "@opencode-ai/ui/tooltip"
 import { useTheme } from "@opencode-ai/ui/theme/context"
+import { useDialog } from "@opencode-ai/ui/context/dialog"
 
 import { useLayout } from "@/context/layout"
 import { usePlatform } from "@/context/platform"
 import { useCommand } from "@/context/command"
 import { useLanguage } from "@/context/language"
 import { useSettings } from "@/context/settings"
+import { useDevice } from "@/context/device"
 import { applyPath, backPath, forwardPath } from "./titlebar-history"
+import { decode64 } from "@/utils/base64"
+import { DialogNewSession } from "@/components/dialog-new-session"
 
 type TauriDesktopWindow = {
   startDragging?: () => Promise<void>
@@ -46,6 +50,8 @@ export function Titlebar() {
   const navigate = useNavigate()
   const location = useLocation()
   const params = useParams()
+  const dialog = useDialog()
+  const device = useDevice()
 
   const mac = createMemo(() => platform.platform === "desktop" && platform.os === "macos")
   const windows = createMemo(() => platform.platform === "desktop" && platform.os === "windows")
@@ -232,26 +238,27 @@ export function Titlebar() {
                     "opacity-0 duration-120 ease-in delay-0 pointer-events-none": layout.sidebar.opened(),
                   }}
                 >
-                  <TooltipKeybind
+                  <Tooltip
                     placement="bottom"
-                    title={language.t("command.session.new")}
-                    keybind={command.keybind("session.new")}
+                    value={language.t("command.session.new")}
                     openDelay={2000}
                   >
                     <Button
                       variant="ghost"
                       icon={creating() ? "new-session-active" : "new-session"}
                       class="titlebar-icon w-8 h-6 p-0 box-border"
-                      disabled={layout.sidebar.opened()}
+                      disabled={layout.sidebar.opened() || !params.dir}
                       tabIndex={layout.sidebar.opened() ? -1 : undefined}
                       onClick={() => {
                         if (!params.dir) return
-                        navigate(`/${params.dir}/session`)
+                        const directory = decode64(params.dir)
+                        if (!directory || !device.isOwnProject(directory)) return
+                        dialog.show(() => <DialogNewSession directory={directory} />)
                       }}
                       aria-label={language.t("command.session.new")}
                       aria-current={creating() ? "page" : undefined}
                     />
-                  </TooltipKeybind>
+                  </Tooltip>
                 </div>
               </div>
             </Show>

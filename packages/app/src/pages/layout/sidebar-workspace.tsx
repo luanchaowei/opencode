@@ -12,6 +12,7 @@ import { Icon } from "@opencode-ai/ui/icon"
 import { IconButton } from "@opencode-ai/ui/icon-button"
 import { Spinner } from "@opencode-ai/ui/spinner"
 import { Tooltip } from "@opencode-ai/ui/tooltip"
+import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { type Session } from "@opencode-ai/sdk/v2/client"
 import { type LocalProject } from "@/context/layout"
 import { useDevice } from "@/context/device"
@@ -20,6 +21,7 @@ import { useLanguage } from "@/context/language"
 import { NewSessionItem, SessionItem, SessionSkeleton } from "./sidebar-items"
 import { sortedRootSessions, workspaceKey } from "./helpers"
 import { useQuery } from "@tanstack/solid-query"
+import { DialogNewSession } from "@/components/dialog-new-session"
 
 type InlineEditorComponent = (props: {
   id: string
@@ -52,6 +54,7 @@ export type WorkspaceSidebarContext = {
   setWorkspaceExpanded: (directory: string, value: boolean) => void
   showResetWorkspaceDialog: (root: string, directory: string) => void
   showDeleteWorkspaceDialog: (root: string, directory: string) => void
+  showNewSessionDialog: (directory: string) => void
   setScrollContainerRef: (el: HTMLDivElement | undefined, mobile?: boolean) => void
 }
 
@@ -150,9 +153,9 @@ const WorkspaceActions = (props: {
   openEditor: WorkspaceSidebarContext["openEditor"]
   showResetWorkspaceDialog: WorkspaceSidebarContext["showResetWorkspaceDialog"]
   showDeleteWorkspaceDialog: WorkspaceSidebarContext["showDeleteWorkspaceDialog"]
+  showNewSessionDialog: WorkspaceSidebarContext["showNewSessionDialog"]
   root: string
   clearHoverProjectSoon: WorkspaceSidebarContext["clearHoverProjectSoon"]
-  navigateToNewSession: () => void
   isOwnProject: Accessor<boolean>
 }): JSX.Element => (
   <div
@@ -214,7 +217,7 @@ const WorkspaceActions = (props: {
         </DropdownMenu.Content>
       </DropdownMenu.Portal>
     </DropdownMenu>
-    <Show when={!props.touch()}>
+    <Show when={!props.touch() && props.isOwnProject()}>
       <Tooltip value={props.language.t("command.session.new")} placement="top">
         <IconButton
           icon="new-session"
@@ -227,7 +230,7 @@ const WorkspaceActions = (props: {
             event.preventDefault()
             event.stopPropagation()
             props.clearHoverProjectSoon()
-            props.navigateToNewSession()
+            props.showNewSessionDialog(props.directory)
           }}
         />
       </Tooltip>
@@ -248,12 +251,13 @@ const WorkspaceSessionList = (props: {
   isOwnProject?: Accessor<boolean>
 }): JSX.Element => (
   <nav class="flex flex-col gap-1">
-    <Show when={props.showNew()}>
+    <Show when={props.showNew() && props.isOwnProject?.()}>
       <NewSessionItem
         slug={props.slug()}
         mobile={props.mobile}
         sidebarExpanded={props.ctx.sidebarExpanded}
         clearHoverProjectSoon={props.ctx.clearHoverProjectSoon}
+        showNewSessionDialog={props.ctx.showNewSessionDialog}
       />
     </Show>
     <Show when={props.loading()}>
@@ -313,7 +317,7 @@ export const SortableWorkspace = (props: {
     pendingRename: false,
   })
 
-  const isOwnProject = createMemo(() => device.isOwnProject(props.project.worktree))
+  const isOwnProject = createMemo(() => device.isOwnProject(props.directory))
 
   const slug = createMemo(() => base64Encode(props.directory))
   const sessions = createMemo(() => sortedRootSessions(workspaceStore, props.sortNow()))
@@ -421,9 +425,9 @@ export const SortableWorkspace = (props: {
                 openEditor={props.ctx.openEditor}
                 showResetWorkspaceDialog={props.ctx.showResetWorkspaceDialog}
                 showDeleteWorkspaceDialog={props.ctx.showDeleteWorkspaceDialog}
+                showNewSessionDialog={props.ctx.showNewSessionDialog}
                 root={props.project.worktree}
                 clearHoverProjectSoon={props.ctx.clearHoverProjectSoon}
-                navigateToNewSession={() => navigate(`/${slug()}/session`)}
                 isOwnProject={isOwnProject}
               />
             </div>

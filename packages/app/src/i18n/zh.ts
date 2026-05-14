@@ -240,6 +240,7 @@ export const dict = {
   "common.loading": "加载中",
   "common.loading.ellipsis": "...",
   "common.cancel": "取消",
+  "common.create": "创建",
   "common.connect": "连接",
   "common.disconnect": "断开连接",
   "common.continue": "提交",
@@ -323,8 +324,12 @@ export const dict = {
   "mcp.status.needs_auth": "需要授权",
   "mcp.status.disabled": "已禁用",
 
-  "dialog.fork.empty": "没有可用于分叉的消息",
-
+"dialog.fork.empty": "没有可用于分叉的消息",
+  
+  "dialog.newSession.title": "新建会话",
+  "dialog.newSession.nameLabel": "会话名称",
+  "dialog.newSession.namePlaceholder": "输入会话名称",
+  
   "dialog.directory.search.placeholder": "搜索文件夹",
   "dialog.directory.empty": "未找到文件夹",
 
@@ -454,6 +459,8 @@ export const dict = {
   "toast.session.share.copyFailed.title": "无法复制链接到剪贴板",
   "toast.session.share.success.title": "会话已分享",
   "toast.session.share.success.description": "分享链接已复制到剪贴板",
+  "toast.session.nameRequired.title": "会话名称必填",
+  "toast.session.nameRequired.description": "请输入会话名称",
   "toast.session.share.failed.title": "分享会话失败",
   "toast.session.share.failed.description": "分享会话时发生错误",
   "toast.session.unshare.success.title": "已取消分享会话",

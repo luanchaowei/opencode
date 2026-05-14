@@ -63,6 +63,7 @@ import { useCommand, type CommandOption } from "@/context/command"
 import { ConstrainDragXAxis, getDraggableId } from "@/utils/solid-dnd"
 import { DebugBar } from "@/components/debug-bar"
 import { Titlebar } from "@/components/titlebar"
+import { DialogNewSession } from "@/components/dialog-new-session"
 import { useServer } from "@/context/server"
 import { useLanguage, type Locale } from "@/context/language"
 import {
@@ -1970,6 +1971,8 @@ export default function Layout(props: ParentProps) {
       dialog.show(() => <DialogResetWorkspace root={root} directory={directory} />),
     showDeleteWorkspaceDialog: (root, directory) =>
       dialog.show(() => <DialogDeleteWorkspace root={root} directory={directory} />),
+    showNewSessionDialog: (directory) =>
+      dialog.show(() => <DialogNewSession directory={directory} />),
     setScrollContainerRef: (el, mobile) => {
       if (!mobile) scrollContainerRef = el
     },
@@ -2159,10 +2162,11 @@ export default function Layout(props: ParentProps) {
                           size="large"
                           icon="new-session"
                           class="w-full"
+                          disabled={!worktree() || !device.isOwnProject(worktree())}
                           onClick={() => {
                             const dir = worktree()
                             if (!dir) return
-                            navigateWithSidebarReset(`/${base64Encode(dir)}/session`)
+                            dialog.show(() => <DialogNewSession directory={dir} />)
                           }}
                         >
                           {language.t("command.session.new")}

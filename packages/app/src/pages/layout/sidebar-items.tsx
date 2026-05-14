@@ -13,6 +13,7 @@ import { getAvatarColors, type LocalProject, useLayout } from "@/context/layout"
 import { useNotification } from "@/context/notification"
 import { usePermission } from "@/context/permission"
 import { messageAgentColor } from "@/utils/agent"
+import { decode64 } from "@/utils/base64"
 import { sessionTitle } from "@/utils/session-title"
 import { sessionPermissionRequest } from "../session/composer/session-request-tree"
 import { childSessionOnPath, hasProjectPermissions } from "./helpers"
@@ -286,26 +287,28 @@ export const NewSessionItem = (props: {
   dense?: boolean
   sidebarExpanded: Accessor<boolean>
   clearHoverProjectSoon: () => void
+  showNewSessionDialog: (directory: string) => void
 }): JSX.Element => {
   const layout = useLayout()
   const language = useLanguage()
   const label = language.t("command.session.new")
   const tooltip = () => props.mobile || !props.sidebarExpanded()
+  const directory = decode64(props.slug)
   const item = (
-    <A
-      href={`/${props.slug}/session`}
-      end
+    <button
+      type="button"
       class={`flex items-center gap-2 min-w-0 w-full text-left focus:outline-none ${props.dense ? "py-0.5" : "py-1"}`}
       onClick={() => {
         if (layout.sidebar.opened()) return
         props.clearHoverProjectSoon()
+        if (directory) props.showNewSessionDialog(directory)
       }}
     >
       <div class="shrink-0 size-6 flex items-center justify-center">
         <Icon name="new-session" size="small" class="text-icon-weak" />
       </div>
       <span class="text-14-regular text-text-strong min-w-0 flex-1 truncate">{label}</span>
-    </A>
+    </button>
   )
 
   return (
