@@ -161,7 +161,11 @@ const FileTreeNode = (
   const handleContextMenu = (e: MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    setMenuPosition({ x: e.clientX, y: e.clientY })
+    const menuWidth = 120
+    const menuHeight = 80
+    const x = Math.min(e.clientX, window.innerWidth - menuWidth - 8)
+    const y = Math.min(e.clientY, window.innerHeight - menuHeight - 8)
+    setMenuPosition({ x, y })
     setMenuOpen(true)
   }
 
