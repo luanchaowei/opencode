@@ -21,7 +21,6 @@ import {
   type JSX,
   lazy,
   onCleanup,
-  onMount,
   type ParentProps,
   Show,
   Suspense,
@@ -31,7 +30,7 @@ import { CommandProvider } from "@/context/command"
 import { CommentsProvider } from "@/context/comments"
 import { DeviceProvider } from "@/context/device"
 import { FileProvider } from "@/context/file"
-import { GlobalSDKProvider, useGlobalSDK } from "@/context/global-sdk"
+import { GlobalSDKProvider } from "@/context/global-sdk"
 import { GlobalSyncProvider } from "@/context/global-sync"
 import { HighlightsProvider } from "@/context/highlights"
 import { LanguageProvider, type Locale, useLanguage } from "@/context/language"
@@ -47,91 +46,6 @@ import DirectoryLayout from "@/pages/directory-layout"
 import Layout from "@/pages/layout"
 import { ErrorPage } from "./pages/error"
 import { useCheckServerHealth } from "./utils/server-health"
-
-const CLEANUP_INTERVAL_MS = (import.meta.env.VITE_CLEANUP_INTERVAL_MS ? 
-  parseInt(import.meta.env.VITE_CLEANUP_INTERVAL_MS) : 24) * 60 * 60 * 1000
-const ARCHIVED_THRESHOLD_DAYS = import.meta.env.VITE_ARCHIVED_THRESHOLD_DAYS ? 
-  parseInt(import.meta.env.VITE_ARCHIVED_THRESHOLD_DAYS) : 7
-
-function SessionCleanup() {
-  const globalSDK = useGlobalSDK()
-  
-  const runCleanup = async () => {
-    try {
-      const threshold = Date.now() - ARCHIVED_THRESHOLD_DAYS * 24 * 60 * 60 * 1000
-      
-      console.log("[session-cleanup] starting cleanup", {
-        threshold,
-        threshold_date: new Date(threshold).toISOString(),
-        threshold_days: ARCHIVED_THRESHOLD_DAYS,
-        interval_ms: CLEANUP_INTERVAL_MS,
-      })
-      
-      const result = await globalSDK.client.experimental.session.list({
-        archived: true,
-      })
-      
-      const sessions = result.data || []
-      console.log("[session-cleanup] found sessions", {
-        total: sessions.length,
-        sessions: sessions.map((s: any) => ({
-          id: s.id,
-          archived: s.time?.archived,
-          archived_date: s.time?.archived ? new Date(s.time.archived).toISOString() : null,
-        })),
-      })
-      
-      const toDelete = sessions.filter((s: { time?: { archived?: number }; id: string; directory?: string }) => {
-        const archivedTime = s.time?.archived
-        if (!archivedTime) return false
-        return archivedTime < threshold
-      })
-      
-      console.log("[session-cleanup] sessions to delete", {
-        count: toDelete.length,
-        sessions: toDelete.map((s: any) => ({
-          id: s.id,
-          archived: s.time?.archived,
-          archived_date: s.time?.archived ? new Date(s.time.archived).toISOString() : null,
-        })),
-      })
-      
-      if (toDelete.length === 0) return
-      
-      for (const session of toDelete) {
-        try {
-          if (!session.directory) {
-            console.warn("[session-cleanup] session has no directory", { sessionID: session.id })
-            continue
-          }
-          await globalSDK.client.session.delete({
-            sessionID: session.id,
-            directory: session.directory,
-          })
-          console.log("[session-cleanup] deleted session", { sessionID: session.id })
-        } catch (error) {
-          console.error("[session-cleanup] failed to delete session", {
-            sessionID: session.id,
-            error,
-          })
-        }
-      }
-      
-      console.log("[session-cleanup] cleanup completed", { deleted: toDelete.length })
-    } catch (error) {
-      console.error("[session-cleanup] cleanup failed", { error })
-    }
-  }
-  
-  onMount(() => {
-    console.log("[session-cleanup] component mounted, starting cleanup")
-    void runCleanup()
-    const timer = setInterval(() => void runCleanup(), CLEANUP_INTERVAL_MS)
-    onCleanup(() => clearInterval(timer))
-  })
-  
-  return null
-}
 
 const HomeRoute = lazy(() => import("@/pages/home"))
 const loadSession = () => import("@/pages/session")
@@ -383,7 +297,6 @@ export function AppInterface(props: {
           <QueryProvider>
             <GlobalSDKProvider>
               <GlobalSyncProvider>
-                <SessionCleanup />
                 <Dynamic
                   component={props.router ?? Router}
                   root={(routerProps) => <RouterRoot appChildren={props.children}>{routerProps.children}</RouterRoot>}
