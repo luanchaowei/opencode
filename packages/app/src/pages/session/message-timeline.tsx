@@ -509,38 +509,11 @@ export function MessageTimeline(props: {
     navigate(`/${params.dir}/session`)
   }
 
-  const archiveSession = async (sessionID: string) => {
-    const session = sync.session.get(sessionID)
-    if (!session) return
-
-    const sessions = sync.data.session ?? []
-    const index = sessions.findIndex((s) => s.id === sessionID)
-    const nextSession = index === -1 ? undefined : (sessions[index + 1] ?? sessions[index - 1])
-
-    await sdk.client.session
-      .update({ sessionID, time: { archived: Date.now() } })
-      .then(() => {
-        sync.set(
-          produce((draft) => {
-            const index = draft.session.findIndex((s) => s.id === sessionID)
-            if (index !== -1) draft.session.splice(index, 1)
-          }),
-        )
-        navigateAfterSessionRemoval(sessionID, session.parentID, nextSession?.id)
-      })
-      .catch((err) => {
-        showToast({
-          title: language.t("common.requestFailed"),
-          description: errorMessage(err),
-        })
-      })
-  }
-
   const deleteSession = async (sessionID: string) => {
     const session = sync.session.get(sessionID)
     if (!session) return false
 
-    const sessions = (sync.data.session ?? []).filter((s) => !s.parentID && !s.time?.archived)
+    const sessions = (sync.data.session ?? []).filter((s) => !s.parentID)
     const index = sessions.findIndex((s) => s.id === sessionID)
     const nextSession = index === -1 ? undefined : (sessions[index + 1] ?? sessions[index - 1])
 
@@ -888,9 +861,6 @@ export function MessageTimeline(props: {
                                     </DropdownMenu.ItemLabel>
                                   </DropdownMenu.Item>
                                 </Show>
-                                <DropdownMenu.Item onSelect={() => void archiveSession(id)}>
-                                  <DropdownMenu.ItemLabel>{language.t("common.archive")}</DropdownMenu.ItemLabel>
-                                </DropdownMenu.Item>
                                 <DropdownMenu.Separator />
                                 <DropdownMenu.Item
                                   onSelect={() => dialog.show(() => <DialogDeleteSession sessionID={id} />)}

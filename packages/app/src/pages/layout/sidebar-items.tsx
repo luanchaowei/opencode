@@ -1,9 +1,12 @@
 import type { Session } from "@opencode-ai/sdk/v2/client"
 import { Avatar } from "@opencode-ai/ui/avatar"
+import { Dialog } from "@opencode-ai/ui/dialog"
+import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { Icon } from "@opencode-ai/ui/icon"
 import { IconButton } from "@opencode-ai/ui/icon-button"
 import { Spinner } from "@opencode-ai/ui/spinner"
 import { Tooltip } from "@opencode-ai/ui/tooltip"
+import { Button } from "@opencode-ai/ui/button"
 import { getFilename } from "@opencode-ai/core/util/path"
 import { A, useParams } from "@solidjs/router"
 import { type Accessor, createMemo, For, type JSX, Match, Show, Switch } from "solid-js"
@@ -82,7 +85,7 @@ export type SessionItemProps = {
   sidebarExpanded: Accessor<boolean>
   clearHoverProjectSoon: () => void
   prefetchSession: (session: Session, priority?: "high" | "low") => void
-  archiveSession: (session: Session) => Promise<void>
+  deleteSession: (session: Session) => Promise<void>
   isOwnProject?: Accessor<boolean>
 }
 
@@ -147,9 +150,38 @@ export const SessionItem = (props: SessionItemProps): JSX.Element => {
   const notification = useNotification()
   const permission = usePermission()
   const globalSync = useGlobalSync()
+  const dialog = useDialog()
   const unseenCount = createMemo(() => notification.session.unseenCount(props.session.id))
   const hasError = createMemo(() => notification.session.unseenHasError(props.session.id))
   const [sessionStore] = globalSync.child(props.session.directory)
+
+  const name = createMemo(() => sessionTitle(props.session.title) ?? language.t("command.session.new"))
+
+  function DialogDeleteSession() {
+    return (
+      <Dialog title={language.t("session.delete.title")} fit>
+        <div class="flex flex-col gap-4 pl-6 pr-2.5 pb-3">
+          <div class="flex flex-col gap-1">
+            <span class="text-14-regular text-text-strong">
+              {language.t("session.delete.confirm", { name: name() })}
+            </span>
+          </div>
+          <div class="flex justify-end gap-2">
+            <Button variant="ghost" size="large" onClick={() => dialog.close()}>
+              {language.t("common.cancel")}
+            </Button>
+            <Button variant="primary" size="large" onClick={() => {
+              void props.deleteSession(props.session)
+              dialog.close()
+            }}>
+              {language.t("session.delete.button")}
+            </Button>
+          </div>
+        </div>
+      </Dialog>
+    )
+  }
+
   const hasPermissions = createMemo(() => {
     return !!sessionPermissionRequest(sessionStore.session, sessionStore.permission, props.session.id, (item) => {
       return !permission.autoResponds(item, props.session.directory)
@@ -252,17 +284,17 @@ export const SessionItem = (props: SessionItemProps): JSX.Element => {
                 "group-focus-within/session:w-6 group-focus-within/session:opacity-100 group-focus-within/session:pointer-events-auto": true,
               }}
             >
-              <Tooltip value={language.t("common.archive")} placement="top">
+              <Tooltip value={language.t("common.delete")} placement="top">
                 <IconButton
-                  icon="archive"
+                  icon="trash"
                   variant="ghost"
                   class="size-6 rounded-md"
-                  aria-label={language.t("common.archive")}
+                  aria-label={language.t("common.delete")}
                   disabled={props.isOwnProject ? !props.isOwnProject() : false}
                   onClick={(event) => {
                     event.preventDefault()
                     event.stopPropagation()
-                    void props.archiveSession(props.session)
+                    dialog.show(DialogDeleteSession)
                   }}
                 />
               </Tooltip>

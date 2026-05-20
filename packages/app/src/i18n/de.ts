@@ -32,7 +32,7 @@ export const dict = {
   "command.session.next": "Nächste Sitzung",
   "command.session.previous.unseen": "Vorherige ungelesene Sitzung",
   "command.session.next.unseen": "Nächste ungelesene Sitzung",
-  "command.session.archive": "Sitzung archivieren",
+  "command.session.delete": "Sitzung archivieren",
   "command.palette": "Befehlspalette",
   "command.theme.cycle": "Thema wechseln",
   "command.theme.set": "Thema verwenden: {{theme}}",

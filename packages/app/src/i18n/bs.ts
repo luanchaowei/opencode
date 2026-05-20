@@ -30,7 +30,7 @@ export const dict = {
   "command.session.next": "Sljedeća sesija",
   "command.session.previous.unseen": "Prethodna nepročitana sesija",
   "command.session.next.unseen": "Sljedeća nepročitana sesija",
-  "command.session.archive": "Arhiviraj sesiju",
+  "command.session.delete": "Arhiviraj sesiju",
 
   "command.palette": "Paleta komandi",
 

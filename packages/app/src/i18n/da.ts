@@ -30,7 +30,7 @@ export const dict = {
   "command.session.next": "Næste session",
   "command.session.previous.unseen": "Forrige ulæste session",
   "command.session.next.unseen": "Næste ulæste session",
-  "command.session.archive": "Arkivér session",
+  "command.session.delete": "Arkivér session",
 
   "command.palette": "Kommandopalette",
 

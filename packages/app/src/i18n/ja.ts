@@ -28,7 +28,7 @@ export const dict = {
   "command.session.next": "次のセッション",
   "command.session.previous.unseen": "前の未読セッション",
   "command.session.next.unseen": "次の未読セッション",
-  "command.session.archive": "セッションをアーカイブ",
+  "command.session.delete": "セッションをアーカイブ",
   "command.palette": "コマンドパレット",
   "command.theme.cycle": "テーマの切り替え",
   "command.theme.set": "テーマを使用: {{theme}}",

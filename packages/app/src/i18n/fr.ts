@@ -28,7 +28,7 @@ export const dict = {
   "command.session.next": "Session suivante",
   "command.session.previous.unseen": "Session non lue précédente",
   "command.session.next.unseen": "Session non lue suivante",
-  "command.session.archive": "Archiver la session",
+  "command.session.delete": "Archiver la session",
   "command.palette": "Palette de commandes",
   "command.theme.cycle": "Changer de thème",
   "command.theme.set": "Utiliser le thème : {{theme}}",

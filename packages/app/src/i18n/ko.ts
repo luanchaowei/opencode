@@ -28,7 +28,7 @@ export const dict = {
   "command.session.next": "다음 세션",
   "command.session.previous.unseen": "이전 읽지 않은 세션",
   "command.session.next.unseen": "다음 읽지 않은 세션",
-  "command.session.archive": "세션 보관",
+  "command.session.delete": "세션 보관",
   "command.palette": "명령 팔레트",
   "command.theme.cycle": "테마 순환",
   "command.theme.set": "테마 사용: {{theme}}",

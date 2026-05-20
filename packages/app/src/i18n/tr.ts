@@ -34,7 +34,7 @@ export const dict = {
   "command.session.next": "Sonraki oturum",
   "command.session.previous.unseen": "Önceki okunmamış oturum",
   "command.session.next.unseen": "Sonraki okunmamış oturum",
-  "command.session.archive": "Oturumu arşivle",
+  "command.session.delete": "Oturumu arşivle",
 
   "command.palette": "Komut paleti",
 

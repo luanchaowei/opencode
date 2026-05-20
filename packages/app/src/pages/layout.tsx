@@ -1007,16 +1007,15 @@ export default function Layout(props: ParentProps) {
     }
   }
 
-  async function archiveSession(session: Session) {
+  async function deleteSession(session: Session) {
     const [store, setStore] = globalSync.child(session.directory)
     const sessions = store.session ?? []
     const index = sessions.findIndex((s) => s.id === session.id)
     const nextSession = sessions[index + 1] ?? sessions[index - 1]
 
-    await globalSDK.client.session.update({
+    await globalSDK.client.session.delete({
       directory: session.directory,
       sessionID: session.id,
-      time: { archived: Date.now() },
     })
     setStore(
       produce((draft) => {
@@ -1104,14 +1103,14 @@ export default function Layout(props: ParentProps) {
         onSelect: () => navigateSessionByUnseen(1),
       },
       {
-        id: "session.archive",
-        title: language.t("command.session.archive"),
+        id: "session.delete",
+        title: language.t("command.session.delete"),
         category: language.t("command.category.session"),
         keybind: "mod+shift+backspace",
         disabled: !params.dir || !params.id,
         onSelect: () => {
           const session = currentSessions().find((s) => s.id === params.id)
-          if (session) void archiveSession(session)
+          if (session) void deleteSession(session)
         },
       },
       {
@@ -1956,7 +1955,7 @@ export default function Layout(props: ParentProps) {
     sidebarHovering,
     clearHoverProjectSoon,
     prefetchSession,
-    archiveSession,
+    deleteSession,
     workspaceName,
     renameWorkspace,
     editorOpen,
@@ -2004,7 +2003,7 @@ export default function Layout(props: ParentProps) {
       sidebarExpanded,
       clearHoverProjectSoon,
       prefetchSession,
-      archiveSession,
+      deleteSession,
     },
   }
 
