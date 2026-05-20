@@ -25,7 +25,7 @@ export function TooltipKeybind(props: TooltipKeybindProps) {
       value={
         <div data-slot="tooltip-keybind">
           <span>{local.title}</span>
-          <span data-slot="tooltip-keybind-key">{local.keybind}</span>
+          {local.keybind && <span data-slot="tooltip-keybind-key">{local.keybind}</span>}
         </div>
       }
     />

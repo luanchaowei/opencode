@@ -68,7 +68,7 @@ export const SidebarContent = (props: {
           </DragDropProvider>
         </div>
         <div class="shrink-0 w-full pt-3 pb-6 flex flex-col items-center gap-2">
-          <TooltipKeybind placement={placement()} title={props.settingsLabel()} keybind={props.settingsKeybind() ?? ""}>
+          <TooltipKeybind placement={placement()} title={props.settingsLabel()} keybind={import.meta.env.VITE_DISABLE_BUTTON ? "" : (props.settingsKeybind() ?? "")}>
             <IconButton
               disabled={import.meta.env.VITE_DISABLE_BUTTON}
               icon="settings-gear"
