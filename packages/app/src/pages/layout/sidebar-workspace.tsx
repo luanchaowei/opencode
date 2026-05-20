@@ -20,6 +20,7 @@ import { loadSessionsQuery, useGlobalSync } from "@/context/global-sync"
 import { useLanguage } from "@/context/language"
 import { NewSessionItem, SessionItem, SessionSkeleton } from "./sidebar-items"
 import { sortedRootSessions, workspaceKey } from "./helpers"
+import { SESSION_RECENT_LIMIT } from "@/context/global-sync/types"
 import { useQuery } from "@tanstack/solid-query"
 import { DialogNewSession } from "@/components/dialog-new-session"
 
@@ -331,7 +332,7 @@ export const SortableWorkspace = (props: {
   const open = createMemo(() => props.ctx.workspaceExpanded(props.directory, local()))
   const boot = createMemo(() => open() || active())
   const count = createMemo(() => sessions()?.length ?? 0)
-  const hasMore = createMemo(() => workspaceStore.sessionTotal > count())
+  const hasMore = createMemo(() => workspaceStore.sessionTotal > SESSION_RECENT_LIMIT && workspaceStore.sessionTotal > count())
   const query = useQuery(() => ({ ...loadSessionsQuery(props.project.worktree) }))
   const busy = createMemo(() => props.ctx.isBusy(props.directory))
   const loading = () => query.isLoading && count() === 0
@@ -473,7 +474,7 @@ export const LocalWorkspace = (props: {
   const sessions = createMemo(() => sortedRootSessions(workspace().store, props.sortNow()))
   const count = createMemo(() => sessions()?.length ?? 0)
   const query = useQuery(() => ({ ...loadSessionsQuery(props.project.worktree) }))
-  const hasMore = createMemo(() => workspace().store.sessionTotal > count())
+  const hasMore = createMemo(() => workspace().store.sessionTotal > SESSION_RECENT_LIMIT && workspace().store.sessionTotal > count())
   const loading = () => query.isLoading && count() === 0
   const loadMore = async () => {
     workspace().setStore("limit", (limit) => (limit ?? 0) + 5)
