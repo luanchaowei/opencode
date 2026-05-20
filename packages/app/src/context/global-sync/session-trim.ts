@@ -35,7 +35,6 @@ export function trimSessions(
   options: { limit: number; permission: Record<string, PermissionRequest[]>; now?: number },
 ) {
   const limit = Math.max(0, options.limit)
-  const cutoff = (options.now ?? Date.now()) - SESSION_RECENT_WINDOW
   const all = input
     .filter((s) => !!s?.id)
     .filter((s) => !s.time?.archived)
@@ -43,14 +42,14 @@ export function trimSessions(
   const roots = all.filter((s) => !s.parentID)
   const children = all.filter((s) => !!s.parentID)
   const base = roots.slice(0, limit)
-  const recent = takeRecentSessions(roots.slice(limit), SESSION_RECENT_LIMIT, cutoff)
+  const recent = takeRecentSessions(roots.slice(limit), SESSION_RECENT_LIMIT, 0)
   const keepRoots = [...base, ...recent]
   const keepRootIds = new Set(keepRoots.map((s) => s.id))
   const keepChildren = children.filter((s) => {
     if (s.parentID && keepRootIds.has(s.parentID)) return true
     const perms = options.permission[s.id] ?? []
     if (perms.length > 0) return true
-    return sessionUpdatedAt(s) > cutoff
+    return true
   })
   return [...keepRoots, ...keepChildren].sort((a, b) => cmp(a.id, b.id))
 }
