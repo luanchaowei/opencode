@@ -26,25 +26,30 @@ const options = {
 
 for (let i = 0; i < args.length; i++) {
   if (args[i] === "--days") {
-    options.days = parseInt(args[++i]) || 7
+    const daysArg = parseInt(args[++i])
+    options.days = daysArg >= 0 ? daysArg : 7
   } else if (args[i] === "--db") {
     options.db = args[++i]
   } else if (args[i] === "--dry-run") {
     options.dryRun = true
+  } else if (args[i] === "--all") {
+    options.days = -1
   } else if (args[i] === "--help") {
     console.log(`
 Session Cleanup Script
 
-Usage: node session-cleanup.js [options]
+Usage: bun session-cleanup.js [options]
 
 Options:
-  --days <number>     Archive threshold in days (default: 7)
+  --days <number>     Delete sessions archived more than N days ago (default: 7)
+  --all               Delete ALL archived sessions (ignores time)
   --db <path>         Database path (default: ~/.local/share/opencode/opencode.db)
   --dry-run           Show what would be deleted without actually deleting
   --help              Show help
 
-Example:
+Examples:
   bun session-cleanup.js --days 7 --dry-run
+  bun session-cleanup.js --all --dry-run
 `)
     process.exit(0)
   }
@@ -58,19 +63,27 @@ if (!existsSync(options.db)) {
 const db = new Database(options.db)
 db.run("PRAGMA foreign_keys = ON")
 
-const threshold = Date.now() - options.days * 24 * 60 * 60 * 1000
+let sessions
 
-console.log(`Cleaning up sessions archived before: ${new Date(threshold).toISOString()}`)
-console.log(`Threshold: ${options.days} days`)
-console.log(`Database: ${options.db}`)
-console.log(`Dry run: ${options.dryRun}`)
-
-// Get archived sessions to delete
-const sessions = db.query(`
-  SELECT id, directory, title, time_archived 
-  FROM session 
-  WHERE time_archived IS NOT NULL AND time_archived < $threshold
-`).all({ threshold })
+if (options.days === -1) {
+  // --all: delete all archived sessions regardless of time
+  sessions = db.query(`
+    SELECT id, directory, title, time_archived 
+    FROM session 
+    WHERE time_archived IS NOT NULL
+  `).all()
+  console.log(`Cleaning up ALL archived sessions`)
+} else {
+  const threshold = Date.now() - options.days * 24 * 60 * 60 * 1000
+  console.log(`Cleaning up sessions archived before: ${new Date(threshold).toISOString()}`)
+  console.log(`Threshold: ${options.days} days`)
+  
+  sessions = db.query(`
+    SELECT id, directory, title, time_archived 
+    FROM session 
+    WHERE time_archived IS NOT NULL AND time_archived < $threshold
+  `).all({ threshold })
+}
 
 console.log(`Found ${sessions.length} sessions to delete`)
 
