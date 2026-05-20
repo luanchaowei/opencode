@@ -173,12 +173,11 @@ function createGlobalSync() {
           loadRootSessionsWithFallback({
             directory,
             limit,
-            list: (query) => globalSDK.client.session.list(query),
+            list: (query) => globalSDK.client.experimental.session.list(query),
           })
             .then((x) => {
               const nonArchived = (x.data ?? [])
                 .filter((s) => !!s?.id)
-                .filter((s) => !s.time?.archived)
                 .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
               const limit = store.limit
               const childSessions = store.session.filter((s) => !!s.parentID)
@@ -190,7 +189,7 @@ function createGlobalSync() {
                 setStore(
                   "sessionTotal",
                   estimateRootSessionTotal({
-                    count: nonArchived.length,
+                    rawCount: x.rawCount,
                     limit: x.limit,
                     limited: x.limited,
                   }),
