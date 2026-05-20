@@ -332,14 +332,14 @@ export const SortableWorkspace = (props: {
   const open = createMemo(() => props.ctx.workspaceExpanded(props.directory, local()))
   const boot = createMemo(() => open() || active())
   const count = createMemo(() => sessions()?.length ?? 0)
-  const hasMore = createMemo(() => workspaceStore.sessionTotal > SESSION_LOAD_MORE_THRESHOLD && workspaceStore.sessionTotal > count())
+  const hasMore = createMemo(() => workspaceStore.sessionTotal >= SESSION_LOAD_MORE_THRESHOLD)
   const query = useQuery(() => ({ ...loadSessionsQuery(props.project.worktree) }))
   const busy = createMemo(() => props.ctx.isBusy(props.directory))
   const loading = () => query.isLoading && count() === 0
   const touch = createMediaQuery("(hover: none)")
   const showNew = createMemo(() => !loading() && (touch() || count() === 0 || (active() && !params.id)))
   const loadMore = async () => {
-    setWorkspaceStore("limit", (limit) => (limit ?? 0) + 5)
+    setWorkspaceStore("limit", (limit) => (limit ?? 0) + 10)
     await globalSync.project.loadSessions(props.directory)
   }
 
@@ -474,10 +474,10 @@ export const LocalWorkspace = (props: {
   const sessions = createMemo(() => sortedRootSessions(workspace().store, props.sortNow()))
   const count = createMemo(() => sessions()?.length ?? 0)
   const query = useQuery(() => ({ ...loadSessionsQuery(props.project.worktree) }))
-  const hasMore = createMemo(() => workspace().store.sessionTotal > SESSION_LOAD_MORE_THRESHOLD && workspace().store.sessionTotal > count())
+  const hasMore = createMemo(() => workspace().store.sessionTotal >= SESSION_LOAD_MORE_THRESHOLD)
   const loading = () => query.isLoading && count() === 0
   const loadMore = async () => {
-    workspace().setStore("limit", (limit) => (limit ?? 0) + 5)
+    workspace().setStore("limit", (limit) => (limit ?? 0) + 10)
     await globalSync.project.loadSessions(props.project.worktree)
   }
 
