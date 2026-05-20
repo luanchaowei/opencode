@@ -81,8 +81,8 @@ if (options.days === -1) {
   sessions = db.query(`
     SELECT id, directory, title, time_archived 
     FROM session 
-    WHERE time_archived IS NOT NULL AND time_archived < $threshold
-  `).all({ threshold })
+    WHERE time_archived IS NOT NULL AND time_archived < ?
+  `).all(threshold)
 }
 
 console.log(`Found ${sessions.length} sessions to delete`)
@@ -109,7 +109,7 @@ let failed = 0
 for (const session of sessions) {
   try {
     // Delete from session table (cascade will delete messages, parts, etc.)
-    db.run("DELETE FROM session WHERE id = $id", { id: session.id })
+    db.run("DELETE FROM session WHERE id = ?", [session.id])
     deleted++
     console.log(`Deleted: ${session.id} "${session.title}"`)
   } catch (error) {
