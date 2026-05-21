@@ -4,6 +4,309 @@
 
 ---
 
+## 重要说明：数据来源和估算规则
+
+### 1. 数据性质说明
+
+**本文档中所有耗时数据均为估算值，基于代码分析和技术常识推断，并非实际测量数据。**
+
+---
+
+### 2. 数据来源
+
+#### 2.1 确认的事实（基于代码证据）
+
+以下内容通过阅读源代码确认，**100%准确**：
+
+| 事实 | 证据 | 文件路径 | 行号 |
+|------|------|---------|------|
+| Shell本地使用进程内fetch | `Server.Default().app.fetch(request)` | run.ts | 673-675 |
+| Shell本地使用GlobalBus事件 | `GlobalBus.emit("event", payload)` | bus/index.ts | 94-99 |
+| Shell本地无HTTP网络请求 | 自定义fetch直接调用Hono app | client.gen.ts | 91 |
+| Shell attach使用HTTP网络 | `await _fetch(request)` 网络调用 | client.gen.ts | 129 |
+| Web使用HTTP网络 | 同Shell attach，网络调用 | client.gen.ts | 129 |
+| 三种模式共享核心业务逻辑 | SessionPrompt.prompt等共享代码 | prompt.ts | 1242-1499 |
+| SSE事件流机制 | streamSSE + Bus.subscribeAll | event.ts | 39-87 |
+
+#### 2.2 估算的数据（基于技术常识）
+
+以下内容通过技术常识估算，**需要实际测量验证**：
+
+| 估算项 | 估算值 | 估算依据 | 不确定性 |
+|--------|--------|---------|---------|
+| 进程内函数调用 | 0-5ms | Node.js/Bun函数调用开销 | 实际可能0-10ms |
+| HTTP网络请求（本地） | 10-50ms | TCP连接+TLS+HTTP往返 | 实际可能5-100ms |
+| HTTP网络请求（远程） | 20-210ms | 网络延迟+服务器负载 | 实际可能10-500ms |
+| SSE连接建立 | 10-300ms | SSE握手+网络延迟 | 实际可能5-500ms |
+| 文件读取（小） | 50-200ms | 磁盘IO+内存缓存 | 实际可能10-500ms |
+| 文件读取（大） | 5000ms+ | 大文件读取+解析 | 实际可能1000-10000ms |
+| UI渲染 | 50-200ms | SolidJS组件渲染 | 实际可能20-500ms |
+| JSON序列化 | 5-30ms | 对象序列化开销 | 实际可能1-100ms |
+
+---
+
+### 3. 估算规则详细说明
+
+#### 3.1 进程内调用估算规则（0-5ms）
+
+**估算依据**：
+- Node.js/Bun进程内函数调用，无网络开销
+- Hono路由匹配和参数验证，轻量级操作
+- Effect内部数据传递，零序列化
+
+**估算公式**：
+```
+进程内调用耗时 = 函数调用开销(0-1ms) + 路由匹配(0-2ms) + 参数验证(0-2ms)
+```
+
+**不确定性**：
+- 实际可能更大（复杂路由匹配、复杂参数验证）
+- 实际可能更小（简单路由、缓存命中）
+
+---
+
+#### 3.2 HTTP网络请求估算规则
+
+**估算依据**：
+- DNS解析：已缓存0-5ms，首次解析10-50ms
+- TCP连接：本地网络5-20ms，远程网络50-200ms
+- TLS握手：HTTPS 5-20ms
+- HTTP往返：请求发送+响应接收 5-30ms（服务器负载影响）
+
+**估算公式**：
+```
+Shell attach（本地网络）：
+  HTTP耗时 = DNS(0-5ms) + TCP(5-20ms) + TLS(5-20ms) + HTTP往返(5-30ms)
+  总计 = 10-50ms
+
+Web界面（远程网络）：
+  HTTP耗时 = DNS(0-5ms) + TCP(50-200ms) + TLS(5-20ms) + HTTP往返(0-150ms)
+  总计 = 20-210ms
+```
+
+**不确定性**：
+- 网络环境差异巨大（局域网、互联网、跨国）
+- 服务器负载影响（高负载时HTTP往返可能>150ms）
+- DNS缓存状态影响（首次解析可能>50ms）
+
+---
+
+#### 3.3 SSE连接建立估算规则
+
+**估算依据**：
+- SSE握手：HTTP升级请求 + 响应 10-50ms
+- 网络延迟：同HTTP网络请求
+- 队列初始化：AsyncQueue创建 1-5ms
+
+**估算公式**：
+```
+Shell attach SSE：
+  SSE耗时 = SSE握手(10-30ms) + 网络延迟(5-20ms)
+  总计 = 10-50ms
+
+Web界面 SSE：
+  SSE耗时 = SSE握手(50-150ms) + 网络延迟(50-150ms)
+  总计 = 100-300ms
+```
+
+**不确定性**：
+- SSE握手时间取决于服务器响应速度
+- 网络延迟差异巨大
+- 实际可能更小（服务器优化）或更大（网络拥堵）
+
+---
+
+#### 3.4 文件读取估算规则
+
+**估算依据**：
+- 磁盘IO速度：SSD 500MB/s, HDD 100MB/s
+- 文件大小：<1MB快速，>10MB慢速
+- 内存缓存：已缓存文件快速，未缓存文件慢速
+- 文件解析：文本解析快，二进制解析慢
+
+**估算公式**：
+```
+小文件（<1MB）：
+  文件耗时 = 磁盘IO(10-50ms) + 解析(10-150ms)
+  总计 = 50-200ms
+
+大文件（10MB）：
+  文件耗时 = 磁盘IO(500-2000ms) + 解析(1000-3000ms)
+  总计 = 5000ms+
+```
+
+**不确定性**：
+- 文件大小差异巨大（1KB到1GB）
+- 磁盘类型差异（SSD vs HDD）
+- 文件类型差异（文本、图片、PDF）
+- 实际可能更小（缓存命中）或更大（超大文件）
+
+---
+
+#### 3.5 UI渲染估算规则（仅Web）
+
+**估算依据**：
+- SolidJS响应式更新：10-30ms（Store更新）
+- 组件渲染：20-100ms（DOM更新）
+- 浏览器重排重绘：20-50ms（布局计算+绘制）
+
+**估算公式**：
+```
+UI渲染耗时 = Store更新(10-30ms) + 组件渲染(20-100ms) + 浏览器重排重绘(20-50ms)
+总计 = 50-200ms
+```
+
+**不确定性**：
+- 组件数量差异（简单UI vs 复杂UI）
+- 浏览器性能差异（Chrome vs Safari vs Firefox）
+- 设备性能差异（高端PC vs 低端手机）
+- 实际可能更小（简单UI）或更大（复杂UI）
+
+---
+
+#### 3.6 JSON序列化估算规则
+
+**估算依据**：
+- 对象复杂度：简单对象5-10ms，复杂对象10-30ms
+- 数据大小：小数据5-10ms，大数据10-30ms
+
+**估算公式**：
+```
+Shell attach（JSON序列化）：
+  序列化耗时 = 简单对象(5-10ms)
+
+Web界面（JSON序列化）：
+  序列化耗时 = 复杂对象(10-30ms)
+```
+
+**不确定性**：
+- 对象复杂度差异巨大
+- 数据大小差异巨大
+- 实际可能更小（简单对象）或更大（复杂对象）
+
+---
+
+#### 3.7 LLM调用估算规则
+
+**估算依据**：
+- LLM推理时间：取决于模型和查询复杂度
+- 简单查询：5-10秒（快速响应）
+- 复杂查询：10-30秒（深度思考）
+- 工具调用：15-60秒（取决于工具执行时间）
+
+**估算公式**：
+```
+LLM耗时 = 推理时间(5-60秒) + 工具执行时间(0-60秒)
+总计 = 5-60秒（5000-60000ms）
+```
+
+**不确定性**：
+- LLM模型差异（GPT-4 vs GPT-3.5 vs Claude）
+- 查询复杂度差异（简单问答 vs 复杂分析）
+- Provider性能差异（OpenAI vs Anthropic vs 本地）
+- 实际可能更小（简单查询）或更大（复杂查询）
+
+---
+
+### 4. 获取真实数据的方法
+
+#### 4.1 添加性能日志
+
+在关键代码位置添加性能测量：
+
+```typescript
+// Shell本地模式
+console.time('SDK客户端创建')
+const sdk = createOpencodeClient({ ... })
+console.timeEnd('SDK客户端创建')
+
+// HTTP请求
+console.time('HTTP请求')
+await _fetch(request)
+console.timeEnd('HTTP请求')
+
+// 核心业务逻辑
+console.time('SessionPrompt.prompt')
+yield* SessionPrompt.prompt(input)
+console.timeEnd('SessionPrompt.prompt')
+```
+
+#### 4.2 使用性能分析工具
+
+**Shell本地/attach模式**：
+```bash
+# Bun性能分析
+bun run --inspect opencode run "hello"
+
+# Node.js性能分析
+node --inspect opencode run "hello"
+```
+
+**Web界面模式**：
+- Chrome DevTools Performance面板
+- Firefox Performance面板
+- Safari Timeline面板
+
+#### 4.3 编写性能测试脚本
+
+```bash
+# 测试Shell本地启动时间
+for i in {1..10}; do
+  time opencode run "hello" --no-reply
+done
+
+# 测试Shell attach响应时间
+for i in {1..10}; do
+  time opencode run "hello" --attach http://server:4096 --no-reply
+done
+
+# 测试Web加载时间（需要浏览器自动化工具）
+# 使用Playwright或Selenium测量页面加载时间
+```
+
+#### 4.4 Effect Tracing功能
+
+OpenCode使用Effect框架，内置tracing功能：
+
+```typescript
+// 启用Effect tracing
+Effect.runPromise(
+  program.pipe(
+    Effect.withTracingEnabled,
+    Effect.withSpan("消息处理周期")
+  )
+)
+```
+
+---
+
+### 5. 数据可信度分级
+
+| 数据类型 | 可信度 | 说明 |
+|---------|--------|------|
+| 代码事实（进程内调用） | **100%可信** | 代码证据，绝对准确 |
+| 相对对比（Shell本地最快） | **90%可信** | 基于代码事实的相对判断 |
+| 绝对数值（150-5355ms） | **50%可信** | 估算值，需要实测验证 |
+| 细分耗时（10-30ms） | **30%可信** | 粗略估算，不确定性高 |
+
+---
+
+### 6. 使用建议
+
+**文档使用建议**：
+- ✅ **相对对比可信**：Shell本地比Shell attach快，Shell attach比Web快
+- ✅ **关键差异可信**：Shell本地零网络、零SSE、零序列化
+- ⚠️ **绝对数值仅供参考**：实际耗时需要实测验证
+- ⚠️ **细分耗时仅供参考**：实际分布可能差异很大
+
+**获取真实数据建议**：
+- 使用性能分析工具（Effect tracing、DevTools）
+- 添加性能日志到关键代码位置
+- 编写自动化测试脚本多次测量
+- 在不同环境下测试（本地、远程、不同网络）
+
+---
+
 ## 第一部分：Shell本地模式完整消息处理流程
 
 ### 1. 概述
