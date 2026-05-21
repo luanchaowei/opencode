@@ -246,6 +246,14 @@ nohup opencode serve \
 ./restart.sh --disable-button
 ```
 
+或手动设置环境变量：
+
+```bash
+VITE_OPENCODE_DEFAULT_DIR=$WORK_DIR \
+VITE_DISABLE_BUTTON=true \
+bun --cwd packages/app dev --host $WEB_HOST --port $WEB_PORT
+```
+
 ### 自定义服务端地址
 
 如果Web和服务端不在同一主机：
