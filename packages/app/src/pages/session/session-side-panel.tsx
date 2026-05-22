@@ -477,11 +477,11 @@ onClick={(e) => {
                            const files = target.files
                            if (!files || files.length === 0) return
                            
-                           for (const selectedFile of Array.from(files)) {
-                             const targetPath = `${dir}/${selectedFile.name}`
-                             const formData = new FormData()
-                             formData.append("file", selectedFile)
-                             formData.append("path", targetPath)
+for (const selectedFile of Array.from(files)) {
+                              const targetPath = `${dir}/${selectedFile.name}`
+                              const formData = new FormData()
+                              formData.append("file", selectedFile)
+                              formData.append("path", targetPath)
                              
                              try {
                                const response = await fetch(`/file/upload?directory=${sdk.directory}`, {
@@ -538,63 +538,82 @@ onClick={(e) => {
                           document.body.removeAttribute("data-prevent-drag-overlay")
                         }
                       }}
-onDrop={(e) => {
-                         e.preventDefault()
-                         e.stopPropagation()
-                         e.stopImmediatePropagation()
+onDrop={async (e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          e.stopImmediatePropagation()
 
-                         document.body.setAttribute("data-drop-completed", "true")
-                         document.body.removeAttribute("data-upload-zone-active")
-                         document.body.removeAttribute("data-prevent-drag-overlay")
+                          document.body.setAttribute("data-drop-completed", "true")
+                          document.body.removeAttribute("data-upload-zone-active")
+                          document.body.removeAttribute("data-prevent-drag-overlay")
 
-                         const dir = uploadDir()
-                         if (!dir) return
-                         
-                         const files = Array.from(e.dataTransfer!.files)
-                         if (files.length === 0) return
+                          const dir = uploadDir()
+                          if (!dir) return
 
-                         for (const droppedFile of files) {
-                           const targetPath = `${dir}/${droppedFile.name}`
+                          const items = Array.from(e.dataTransfer!.items)
+                          if (items.length === 0) return
 
-                           const formData = new FormData()
-                           formData.append("file", droppedFile)
-                           formData.append("path", targetPath)
+                          // Upload a single file
+                          const uploadFile = async (file: File, path: string) => {
+                            const formData = new FormData()
+                            formData.append("file", file)
+                            formData.append("path", path)
 
-                           fetch(`/file/upload?directory=${sdk.directory}`, {
-                             method: "POST",
-                             body: formData,
-                           })
-                             .then(async (response) => {
-                               if (!response.ok) {
-                                 const error = await response.json()
-                                 throw new Error(error.error || "Upload failed")
-                               }
-                               return response.json()
-                             })
-                             .then(() => {
-                               file.tree.refresh(dir)
-                               showToast({
-                                 variant: "success",
-                                 title: language.t("toast.file.uploadSuccess.title"),
-                                 description: language.t("toast.file.uploadSuccess.description", { filename: droppedFile.name }),
-                               })
-                               setTimeout(() => {
-                                 document.body.removeAttribute("data-drop-completed")
-                               }, 100)
-                             })
-                             .catch((error) => {
-                               const errorMsg = error instanceof Error ? error.message : String(error)
-                               showToast({
-                                 variant: "error",
-                                 title: language.t("toast.file.uploadFailed.title"),
-                                 description: `${droppedFile.name}: ${errorMsg}`,
-                               })
-                               setTimeout(() => {
-                                 document.body.removeAttribute("data-drop-completed")
-                               }, 100)
-                             })
-                         }
-                       }}
+                            try {
+                              const response = await fetch(`/file/upload?directory=${sdk.directory}`, {
+                                method: "POST",
+                                body: formData,
+                              })
+
+                              if (!response.ok) {
+                                const error = await response.json()
+                                throw new Error(error.error || "Upload failed")
+                              }
+
+                              showToast({
+                                variant: "success",
+                                title: language.t("toast.file.uploadSuccess.title"),
+                                description: language.t("toast.file.uploadSuccess.description", { filename: path.replace(dir + "/", "") }),
+                              })
+                            } catch (error) {
+                              const errorMsg = error instanceof Error ? error.message : String(error)
+                              showToast({
+                                variant: "error",
+                                title: language.t("toast.file.uploadFailed.title"),
+                                description: `${path}: ${errorMsg}`,
+                              })
+                            }
+                          }
+
+                          // Traverse folder structure recursively
+                          const traverseEntry = async (entry: FileSystemEntry, basePath: string) => {
+                            if (entry.isFile) {
+                              const fileEntry = entry as FileSystemFileEntry
+                              const file = await new Promise<File>((resolve) => fileEntry.file(resolve))
+                              await uploadFile(file, basePath)
+                            } else if (entry.isDirectory) {
+                              const dirEntry = entry as FileSystemDirectoryEntry
+                              const reader = dirEntry.createReader()
+                              const entries = await new Promise<FileSystemEntry[]>((resolve) => reader.readEntries(resolve))
+                              for (const childEntry of entries) {
+                                await traverseEntry(childEntry, `${basePath}/${childEntry.name}`)
+                              }
+                            }
+                          }
+
+                          // Process all dropped items
+                          for (const item of items) {
+                            const entry = item.webkitGetAsEntry()
+                            if (entry) {
+                              await traverseEntry(entry, `${dir}/${entry.name}`)
+                            }
+                          }
+
+                          file.tree.refresh(dir)
+                          setTimeout(() => {
+                            document.body.removeAttribute("data-drop-completed")
+                          }, 100)
+                        }}
                     >
                       <div class="flex flex-col items-center justify-center text-text-weak">
                         <Icon name="cloud-upload" class="size-6 mb-2" />
