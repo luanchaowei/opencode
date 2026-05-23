@@ -1493,9 +1493,34 @@ PART_MAPPING["text"] = function TextPartDisplay(props) {
   const handleCopy = async () => {
     const content = text()
     if (!content) return
-    await navigator.clipboard.writeText(content)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(content)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+        return
+      }
+      
+      // Fallback for non-secure contexts
+      const textarea = document.createElement("textarea")
+      textarea.value = content
+      textarea.setAttribute("readonly", "")
+      textarea.style.position = "fixed"
+      textarea.style.opacity = "0"
+      textarea.style.pointerEvents = "none"
+      document.body.appendChild(textarea)
+      textarea.select()
+      const copied = document.execCommand("copy")
+      document.body.removeChild(textarea)
+      
+      if (copied) {
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      }
+    } catch (error) {
+      console.error("Failed to copy message:", error)
+    }
   }
 
   return (
@@ -1858,9 +1883,34 @@ ToolRegistry.register({
     const handleCopy = async () => {
       const content = text()
       if (!content) return
-      await navigator.clipboard.writeText(content)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      
+      try {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(content)
+          setCopied(true)
+          setTimeout(() => setCopied(false), 2000)
+          return
+        }
+        
+        // Fallback for non-secure contexts
+        const textarea = document.createElement("textarea")
+        textarea.value = content
+        textarea.setAttribute("readonly", "")
+        textarea.style.position = "fixed"
+        textarea.style.opacity = "0"
+        textarea.style.pointerEvents = "none"
+        document.body.appendChild(textarea)
+        textarea.select()
+        const copied = document.execCommand("copy")
+        document.body.removeChild(textarea)
+        
+        if (copied) {
+          setCopied(true)
+          setTimeout(() => setCopied(false), 2000)
+        }
+      } catch (error) {
+        console.error("Failed to copy message:", error)
+      }
     }
 
     return (
