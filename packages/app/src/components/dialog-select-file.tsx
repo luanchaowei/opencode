@@ -309,32 +309,11 @@ export function DialogSelectFile(props: { mode?: DialogSelectFileMode; onOpenFil
     const query = text.trim()
     setGrouped(query.length > 0)
 
-    if (!query && filesOnly()) {
-      const loaded = file.tree.state("")?.loaded
-      const pending = loaded ? Promise.resolve() : file.tree.list("")
-      const next = uniqueEntries([...fileEntries.recent(), ...fileEntries.root()])
-
-      if (loaded || next.length > 0) {
-        void pending
-        return next
-      }
-
-      await pending
-      return uniqueEntries([...fileEntries.recent(), ...fileEntries.root()])
-    }
-
+    // No input: show command shortcuts and recent files
     if (!query) return [...commandEntries.picks(), ...fileEntries.recent()]
 
-    if (filesOnly()) {
-      const files = await file.searchFiles(query)
-      const category = language.t("palette.group.files")
-      return files.map((path) => createFileEntry(path, category))
-    }
-
-    const [files, nextSessions] = await Promise.all([file.searchFiles(query), Promise.resolve(sessions(query))])
-    const category = language.t("palette.group.files")
-    const entries = files.map((path) => createFileEntry(path, category))
-    return [...commandEntries.list(), ...nextSessions, ...entries]
+    // With input: only search sessions
+    return sessions(query)
   }
 
   const handleMove = (item: Entry | undefined) => {
