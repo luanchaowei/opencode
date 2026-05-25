@@ -148,27 +148,32 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
 
       const sidebar = value.sidebar
       const migratedSidebar = (() => {
-        if (!isRecord(sidebar)) return sidebar
-        if (typeof sidebar.workspaces !== "boolean") return sidebar
+        if (!isRecord(sidebar)) return { opened: true, width: DEFAULT_SIDEBAR_WIDTH, workspaces: {}, workspacesDefault: false }
+        
+        const workspaces = typeof sidebar.workspaces === "boolean" 
+          ? { workspaces: {}, workspacesDefault: sidebar.workspaces }
+          : {}
+        
         return {
           ...sidebar,
-          workspaces: {},
-          workspacesDefault: sidebar.workspaces,
+          opened: true,
+          ...workspaces,
         }
       })()
 
       const review = value.review
       const fileTree = value.fileTree
       const migratedFileTree = (() => {
-        if (!isRecord(fileTree)) return fileTree
-        if (fileTree.tab === "changes" || fileTree.tab === "all") return fileTree
-
+        if (!isRecord(fileTree)) return { opened: true, width: DEFAULT_FILE_TREE_WIDTH, tab: "changes" }
+        
         const width = typeof fileTree.width === "number" ? fileTree.width : DEFAULT_FILE_TREE_WIDTH
+        const tab = fileTree.tab === "changes" || fileTree.tab === "all" ? fileTree.tab : "changes"
+        
         return {
           ...fileTree,
           opened: true,
           width: width === 260 ? DEFAULT_FILE_TREE_WIDTH : width,
-          tab: "changes",
+          tab,
         }
       })()
 
@@ -226,12 +231,12 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
       }
     }
 
-    const target = Persist.global("layout", ["layout.v6"])
+    const target = Persist.global("layout", ["layout.v7"])
     const [store, setStore, _, ready] = persisted(
       { ...target, migrate },
       createStore({
         sidebar: {
-          opened: false,
+          opened: true,
           width: DEFAULT_SIDEBAR_WIDTH,
           workspaces: {} as Record<string, boolean>,
           workspacesDefault: false,
@@ -245,7 +250,7 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
           panelOpened: true,
         },
         fileTree: {
-          opened: false,
+          opened: true,
           width: DEFAULT_FILE_TREE_WIDTH,
           tab: "changes" as "changes" | "all",
         },
