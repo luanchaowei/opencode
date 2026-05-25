@@ -221,7 +221,10 @@ function createGlobalSync() {
   }
 
   async function bootstrapInstance(directory: string) {
-    if (!directory) return
+    if (!directory) {
+      console.warn('[global-sync] bootstrapInstance: directory is empty, returning')
+      return
+    }
     const pending = booting.get(directory)
     if (pending) return pending
 
@@ -229,7 +232,13 @@ function createGlobalSync() {
     const promise = Promise.resolve().then(async () => {
       const child = children.ensureChild(directory)
       const cache = children.vcsCache.get(directory)
-      if (!cache) return
+      if (!cache) {
+        console.warn('[global-sync] bootstrapInstance: vcsCache not found for directory:', directory, {
+          vcsCacheKeys: Array.from(children.vcsCache.keys()),
+          childrenKeys: Object.keys(children.children),
+        })
+        return
+      }
       const sdk = sdkFor(directory)
       await bootstrapDirectory({
         directory,
