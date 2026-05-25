@@ -143,11 +143,17 @@ export function SessionHeader() {
   const isOwnProject = createMemo(() => {
     const directory = projectDirectory()
     if (!directory) return true
-    return device.isOwnProject(directory)
+    const ip = device.clientIP()
+    if (ip === undefined || ip === null) return undefined // Loading
+    if (ip === 'localhost' || ip === 'unknown') return true
+    const dirName = getFilename(directory)
+    return dirName === ip
   })
 
   createEffect(() => {
-    if ((!isOwnProject() || !params.id) && layout.fileTree.opened()) {
+    const own = isOwnProject()
+    if (own === undefined) return // Still loading, don't close
+    if (own === false && layout.fileTree.opened()) {
       layout.fileTree.close()
     }
   })

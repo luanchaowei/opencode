@@ -984,7 +984,243 @@ UI → SDK → HTTP网络 → 远程Server → SessionPrompt.prompt
 
 ---
 
-### 8. 关键结论和选择建议
+### 8. 并发阻塞点分析（Web多session vs Shell本地单会话）
+
+**重要说明**：本节分析基于代码推断，除单会话/多会话差异外，其他阻塞点需要实际测试验证。
+
+#### 8.1 InstanceState ScopedCache竞争（仅Web）
+
+**代码位置**：`/packages/opencode/src/effect/instance-state.ts:38-66`
+
+**阻塞原因**：
+- Web多用户、多session共享同一个InstanceState
+- ScopedCache有lookup函数（第42行）：`lookup: () => init(yield* context)`
+- 多session并发调用`InstanceState.get()`时，可能竞争lookup
+- Shell本地是单会话，不存在并发竞争
+
+**具体场景**：
+- 用户A和用户B同时访问不同session
+- 两个session同时调用`InstanceState.get(state)`
+- ScopedCache可能同时执行两次lookup（虽然会缓存结果）
+- 初始化时间100-500ms（bootstrap.ts:17-42），可能阻塞其他session
+
+---
+
+#### 8.2 GlobalBus事件竞争（仅Web）
+
+**代码位置**：`/packages/opencode/src/bus/index.ts:80-101`
+
+**阻塞原因**：
+- GlobalBus是全局单例（所有session共享）
+- publish()函数有多个步骤：
+  - InstanceState.get() (第82行)
+  - PubSub.publish() (第86-88行)
+  - GlobalBus.emit() (第94-99行)
+- 多session并发publish时，可能竞争InstanceState.get()
+
+**具体场景**：
+- Session A正在处理LLM响应，频繁publish事件
+- Session B同时发送新消息，需要publish
+- GlobalBus.emit()可能排队等待（虽然Node.js事件循环是单线程，但Effect可能有调度延迟）
+
+---
+
+#### 8.3 SSE AsyncQueue阻塞（仅Web）
+
+**代码位置**：`/packages/opencode/src/server/routes/instance/event.ts:39-87`
+
+**阻塞原因**：
+- SSE端点使用AsyncQueue（第40行）：`const q = new AsyncQueue<string>()`
+- Bus.subscribeAll订阅所有事件（第69-74行）
+- 多session的事件都推入同一个队列
+- 队列处理是串行的（第78-82行）：`for await (const data of q)`
+- 如果某个session产生大量事件，可能阻塞其他session的事件
+
+**具体场景**：
+- Session A正在执行Bash工具，产生大量输出事件
+- Session B的小查询响应被Session A的事件队列阻塞
+- SSE客户端可能等待队列处理完成
+
+---
+
+#### 8.4 SQLite数据库锁竞争（仅Web）
+
+**代码位置**：`/packages/opencode/src/session/prompt.ts:1236-1237`
+
+**阻塞原因**：
+- 多session并发写入SQLite数据库
+- `sessions.updateMessage(info)` 和 `sessions.updatePart(part)`
+- SQLite是单写锁，写操作可能阻塞其他写操作
+- Shell本地是单会话，不存在锁竞争
+
+**具体场景**：
+- Session A正在写入大文件的消息parts
+- Session B同时写入新消息
+- SQLite写锁可能阻塞Session B的写入
+
+---
+
+#### 8.5 Provider缓存竞争（首次加载）
+
+**代码位置**：`/packages/opencode/src/provider/provider.ts:1548-1578`
+
+**阻塞原因**：
+- provider.getLanguage()使用缓存（第1552行）：`if (s.models.has(key)) return`
+- 首次加载需要resolveSDK()（第1556行）：50-500ms
+- 多session首次加载同一个provider时，可能重复加载
+- Shell本地是单会话，首次加载一次即可
+
+**具体场景**：
+- 服务器启动后，用户A和用户B首次访问
+- 两人同时请求同一个provider（如OpenAI）
+- 可能同时执行resolveSDK()，浪费资源
+- npm包安装（provider.ts:1501）可能阻塞
+
+---
+
+#### 8.6 LLM调用队列等待（理论）
+
+**代码位置**：`/packages/opencode/src/session/llm.ts:333-412`
+
+**阻塞原因**：
+- streamText()调用AI SDK
+- Provider可能有速率限制（rate limit）
+- 多session并发调用同一个provider时，可能排队等待
+- Shell本地是单会话，不存在排队
+
+**具体场景**：
+- Provider限制每分钟60次请求
+- Session A、B、C同时调用，超过限制
+- 可能排队等待或被拒绝
+
+---
+
+#### 8.7 Effect调度竞争
+
+**代码位置**：`/packages/opencode/src/session/prompt.ts:1196-1198`
+
+**阻塞原因**：
+- `Effect.forEach(input.parts, resolvePart, { concurrency: "unbounded" })`
+- unbounded并发可能导致资源竞争
+- 多session同时执行大量并发操作
+- Effect运行器可能调度延迟
+
+**具体场景**：
+- Session A处理10个大文件parts，并发10个Read工具
+- Session B处理简单查询，需要等待Effect调度
+- Effect的Fiber调度可能优先处理Session A
+
+---
+
+#### 8.8 文件系统IO阻塞
+
+**代码位置**：`/packages/opencode/src/tool/read.ts:217-270`
+
+**阻塞原因**：
+- Read工具读取文件（磁盘IO）
+- 大文件读取可能阻塞磁盘IO
+- 多session同时读取文件，可能竞争磁盘带宽
+- Shell本地是单会话，但Web多session可能竞争
+
+**具体场景**：
+- Session A读取10MB文件
+- Session B读取另一个10MB文件
+- 磁盘IO带宽可能饱和，互相阻塞
+
+---
+
+#### 8.9 Bash子进程资源竞争
+
+**代码位置**：`/packages/opencode/src/tool/bash.ts:440`
+
+**阻塞原因**：
+- `spawner.spawn(cmd)` 启动子进程
+- 多session同时执行Bash命令
+- 系统进程数限制、CPU资源限制
+- Shell本地单会话，但Web多session可能竞争
+
+**具体场景**：
+- Session A执行长时间运行的命令（如npm install）
+- Session B执行短命令，但系统进程资源紧张
+- 可能等待子进程资源
+
+---
+
+#### 8.10 SSE客户端事件合并延迟（仅Web）
+
+**代码位置**：`/packages/app/src/context/global-sdk.tsx:165-178`
+
+**阻塞原因**：
+- Web客户端有事件合并去重逻辑
+- `coalesced.set(k, queue.length)` 和 `queue.push()`
+- 多session的事件需要合并，可能延迟
+- Shell本地直接订阅GlobalBus，无合并延迟
+
+**具体场景**：
+- Session A产生100个text-delta事件
+- Session B产生1个finish事件
+- Web客户端合并逻辑可能延迟Session B的事件
+
+---
+
+#### 8.11 并发阻塞差异对比表
+
+| 阻塞点 | Shell本地 | Web界面 | 差异原因 |
+|--------|----------|---------|---------|
+| InstanceState竞争 | **无**（单会话） | **有**（多用户多session） | 单进程独占 vs 多用户共享 |
+| GlobalBus竞争 | **低**（单会话） | **高**（多session） | 单会话低频 vs 多session高频 |
+| SSE队列阻塞 | **无**（GlobalBus） | **有**（AsyncQueue） | 进程内事件 vs 网络队列 |
+| SQLite锁竞争 | **无**（单会话） | **有**（多session写入） | 单写锁 vs 多写竞争 |
+| Provider缓存竞争 | **低**（首次1次） | **高**（多用户首次） | 单次加载 vs 多次并发加载 |
+| LLM速率限制 | **无**（单会话） | **有**（多session排队） | 单请求 vs 多请求竞争 |
+| Effect调度竞争 | **低**（单会话） | **高**（多session并发） | 单Fiber vs 多Fiber竞争 |
+| 磁盘IO竞争 | **低**（单会话） | **高**（多session读取） | 单IO vs 多IO竞争 |
+| 子进程资源竞争 | **低**（单会话） | **高**（多session并发） | 单进程 vs 多进程竞争 |
+| SSE事件合并延迟 | **无**（GlobalBus） | **有**（客户端合并） | 直达 vs 合并队列 |
+
+---
+
+#### 8.12 Shell本地并发优势总结
+
+**Shell本地模式的优势**：
+1. ✅ **单会话独占**：无InstanceState、GlobalBus、SQLite竞争
+2. ✅ **进程内事件**：无SSE队列、无事件合并延迟
+3. ✅ **资源独占**：无磁盘IO、CPU、进程资源竞争
+4. ✅ **零排队等待**：无LLM速率限制排队
+
+---
+
+#### 8.13 Web并发劣势总结
+
+**Web界面模式的劣势**：
+1. ❌ **多用户共享**：InstanceState、GlobalBus竞争
+2. ❌ **网络队列**：SSE AsyncQueue可能阻塞
+3. ❌ **数据库锁竞争**：SQLite多session写入阻塞
+4. ❌ **资源竞争**：磁盘IO、CPU、进程资源竞争
+5. ❌ **排队等待**：LLM速率限制、Effect调度排队
+
+---
+
+#### 8.14 性能差异倍数估算
+
+**单用户场景**（无并发）：
+- Shell本地比Web快 **2.3-8.4倍**（网络+SSE+UI开销）
+
+**多用户高并发场景**（10+ session）：
+- Shell本地比Web快 **5-20倍**（网络+SSE+UI+并发阻塞）
+
+**阻塞点额外开销估算**：
+- InstanceState竞争：+50-200ms（首次并发）
+- SSE队列阻塞：+10-100ms（事件排队）
+- SQLite锁竞争：+10-50ms（写入排队）
+- Provider缓存竞争：+50-500ms（首次并发）
+- Effect调度竞争：+10-50ms（Fiber排队）
+- 磁盘IO竞争：+50-200ms（IO排队）
+- 子进程资源竞争：+10-100ms（进程排队）
+
+---
+
+### 9. 关键结论和选择建议
 
 #### 8.1 性能结论
 
