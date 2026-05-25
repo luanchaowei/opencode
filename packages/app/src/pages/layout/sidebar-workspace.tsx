@@ -320,7 +320,13 @@ export const SortableWorkspace = (props: {
   const isOwnProject = createMemo(() => device.isOwnProject(props.directory))
 
   const slug = createMemo(() => base64Encode(props.directory))
-  const sessions = createMemo(() => sortedRootSessions(workspaceStore, props.sortNow()))
+  const allSessions = createMemo(() => sortedRootSessions(workspaceStore, props.sortNow()))
+  const sessions = createMemo(() => {
+    if (isOwnProject()) return allSessions()
+    if (!params.id) return []
+    const current = allSessions().find((s) => s.id === params.id)
+    return current ? [current] : []
+  })
   const local = createMemo(() => props.directory === props.project.worktree)
   const active = createMemo(() => workspaceKey(props.ctx.currentDir()) === workspaceKey(props.directory))
   const workspaceValue = createMemo(() => {
@@ -331,13 +337,14 @@ export const SortableWorkspace = (props: {
   const open = createMemo(() => props.ctx.workspaceExpanded(props.directory, local()))
   const boot = createMemo(() => open() || active())
   const count = createMemo(() => sessions()?.length ?? 0)
-  const hasMore = createMemo(() => workspaceStore.sessionTotal > count())
+  const hasMore = createMemo(() => isOwnProject() && workspaceStore.sessionTotal > allSessions()?.length)
   const query = useQuery(() => ({ ...loadSessionsQuery(props.project.worktree) }))
   const busy = createMemo(() => props.ctx.isBusy(props.directory))
   const loading = () => query.isLoading && count() === 0
   const touch = createMediaQuery("(hover: none)")
-  const showNew = createMemo(() => !loading() && (touch() || count() === 0 || (active() && !params.id)))
+  const showNew = createMemo(() => isOwnProject() && !loading() && (touch() || count() === 0 || (active() && !params.id)))
   const loadMore = async () => {
+    if (!isOwnProject()) return
     setWorkspaceStore("limit", (limit) => (limit ?? 0) + 10)
     await globalSync.project.loadSessions(props.directory)
   }
@@ -462,6 +469,7 @@ export const LocalWorkspace = (props: {
   const globalSync = useGlobalSync()
   const language = useLanguage()
   const device = useDevice()
+  const params = useParams()
   const workspace = createMemo(() => {
     const [store, setStore] = globalSync.child(props.project.worktree)
     return { store, setStore }
@@ -470,12 +478,19 @@ export const LocalWorkspace = (props: {
   const isOwnProject = createMemo(() => device.isOwnProject(props.project.worktree))
 
   const slug = createMemo(() => base64Encode(props.project.worktree))
-  const sessions = createMemo(() => sortedRootSessions(workspace().store, props.sortNow()))
+  const allSessions = createMemo(() => sortedRootSessions(workspace().store, props.sortNow()))
+  const sessions = createMemo(() => {
+    if (isOwnProject()) return allSessions()
+    if (!params.id) return []
+    const current = allSessions().find((s) => s.id === params.id)
+    return current ? [current] : []
+  })
   const count = createMemo(() => sessions()?.length ?? 0)
   const query = useQuery(() => ({ ...loadSessionsQuery(props.project.worktree) }))
-  const hasMore = createMemo(() => workspace().store.sessionTotal > count())
+  const hasMore = createMemo(() => isOwnProject() && workspace().store.sessionTotal > allSessions()?.length)
   const loading = () => query.isLoading && count() === 0
   const loadMore = async () => {
+    if (!isOwnProject()) return
     workspace().setStore("limit", (limit) => (limit ?? 0) + 10)
     await globalSync.project.loadSessions(props.project.worktree)
   }

@@ -559,13 +559,14 @@ export default function Layout(props: ParentProps) {
 
     const [child] = globalSync.child(directory, { bootstrap: false })
     const id = child.project
-    if (!id) return
+    if (!id) return { worktree: directory, expanded: true } as LocalProject
 
     const meta = globalSync.data.project.find((p) => p.id === id)
     const root = meta?.worktree
-    if (!root) return
+    if (!root) return { worktree: directory, expanded: true } as LocalProject
 
-    return projects.find((p) => p.worktree === root)
+    const found = projects.find((p) => p.worktree === root)
+    return found ?? { worktree: directory, expanded: true } as LocalProject
   })
 
   const [autoselecting] = createResource(async () => {
@@ -1280,7 +1281,7 @@ export default function Layout(props: ParentProps) {
     rememberSessionRoute(directory, id, root)
     notification.session.markViewed(id)
     const expanded = untrack(() => store.workspaceExpanded[directory])
-    if (expanded === false) {
+    if (expanded !== true) {
       setStore("workspaceExpanded", directory, true)
     }
     requestAnimationFrame(() => scrollToSession(id, `${directory}:${id}`))
@@ -1766,9 +1767,13 @@ export default function Layout(props: ParentProps) {
         const session = `${slug}/${id}`
 
         if (!root) {
+          const directoryRoot = projectRoot(dir) || dir
+          if (!server.projects.list().find((p) => p.worktree === directoryRoot)) {
+            server.projects.open(directoryRoot)
+          }
           activeRoute.session = session
           activeRoute.directory = dir
-          activeRoute.sessionProject = ""
+          activeRoute.sessionProject = syncSessionRoute(dir, id, directoryRoot)
           return
         }
 
@@ -1811,6 +1816,7 @@ export default function Layout(props: ParentProps) {
         const next = new Set(dirs)
         for (const directory of next) {
           if (loadedSessionDirs.has(directory)) continue
+          if (!device.isOwnProject(directory)) continue
           void globalSync.project.loadSessions(directory)
         }
 

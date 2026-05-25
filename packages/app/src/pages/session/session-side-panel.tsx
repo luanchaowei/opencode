@@ -68,10 +68,7 @@ const isDesktop = createMediaQuery("(min-width: 768px)")
   
   const isOwnProject = createMemo(() => {
     const directory = decode64(params.dir)
-    if (!directory) {
-      console.warn('[session-side-panel] isOwnProject: directory is empty, returning true')
-      return true
-    }
+    if (!directory) return true
     return device.isOwnProject(directory)
   })
   
@@ -462,33 +459,22 @@ const isDesktop = createMediaQuery("(min-width: 768px)")
                        </Match>
 </Switch>
 
-                    {(() => {
-                      const own = isOwnProject()
-                      const dir = uploadDir()
-                      console.log('[session-side-panel] upload zone render:', { 
-                        isOwnProject: own,
-                        isOwnProjectType: typeof own,
-                        directory: decode64(params.dir),
-                        sessionID: sessionID(),
-                        uploadDir: dir,
-                        hasSessionID: !!params.id,
-                        fileOpen: fileOpen(),
-                        shown: shown(),
-                        nofiles: nofiles(),
-                      })
-                      if (own === undefined || own === null) {
-                        console.error('[session-side-panel] isOwnProject returned undefined/null!')
-                        return null
-                      }
-                      return own ? (
-                        <div
-                          class="mt-4 p-3 border-2 border-dashed border-border-weak rounded-lg hover:border-border-base transition-colors file-upload-zone cursor-pointer"
-                          style="min-height: 80px"
-                          onClick={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            const dir = uploadDir()
-                            if (!dir) return
+                    <Show when={isOwnProject()} fallback={
+                      <div class="mt-4 p-3 border-2 border-dashed border-border-weak rounded-lg opacity-50" style="min-height: 80px">
+                        <div class="flex flex-col items-center justify-center text-text-weaker">
+                          <Icon name="cloud-upload" class="size-6 mb-2" />
+                          <p class="text-12-regular">{language.t("session.files.uploadDisabled")}</p>
+                        </div>
+                      </div>
+                    }>
+                      <div
+                        class="mt-4 p-3 border-2 border-dashed border-border-weak rounded-lg hover:border-border-base transition-colors file-upload-zone cursor-pointer"
+                        style="min-height: 80px"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          const dir = uploadDir()
+                          if (!dir) return
                           
                           const input = document.createElement('input')
                           input.type = 'file'
@@ -642,15 +628,7 @@ const isDesktop = createMediaQuery("(min-width: 768px)")
                           <p class="text-12-medium">{language.t("session.files.uploadHint")}</p>
                         </div>
                       </div>
-                      ) : (
-                      <div class="mt-4 p-3 border-2 border-dashed border-border-weak rounded-lg opacity-50" style="min-height: 80px">
-                        <div class="flex flex-col items-center justify-center text-text-weaker">
-                          <Icon name="cloud-upload" class="size-6 mb-2" />
-                          <p class="text-12-regular">{language.t("session.files.uploadDisabled")}</p>
-                        </div>
-                      </div>
-                      )
-                    })()}
+                    </Show>
                   </Tabs.Content>
                 </Tabs>
               </div>
