@@ -452,6 +452,7 @@ export const dict = {
   "toast.file.downloadFailed.description": "{{filename}}: {{error}}",
   
   "session.files.uploadHint": "拖拽或者点击上传文件",
+  "session.files.uploadDisabled": "上传已禁用（非自己的项目）",
   "file.delete.confirm": "确定要删除 {{filename}} 吗？",
   "file.delete.label": "删除文件",
   "file.download.label": "下载文件",

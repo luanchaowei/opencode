@@ -150,14 +150,6 @@ export function SessionHeader() {
     return dirName === ip
   })
 
-  createEffect(() => {
-    const own = isOwnProject()
-    if (own === undefined) return // Still loading, don't close
-    if (own === false && layout.fileTree.opened()) {
-      layout.fileTree.close()
-    }
-  })
-
   const project = createMemo(() => {
     const directory = projectDirectory()
     if (!directory) return
@@ -414,7 +406,6 @@ export function SessionHeader() {
                     <TooltipKeybind
                       title={language.t("command.fileTree.toggle")}
                       keybind={command.keybind("fileTree.toggle")}
-                      inactive={!isOwnProject()}
                     >
                       <Button
                         variant="ghost"
@@ -423,7 +414,6 @@ export function SessionHeader() {
                         aria-label={language.t("command.fileTree.toggle")}
                         aria-expanded={layout.fileTree.opened()}
                         aria-controls="file-tree-panel"
-                        disabled={!isOwnProject()}
                       >
                         <div class="relative flex items-center justify-center size-4">
                           <Icon

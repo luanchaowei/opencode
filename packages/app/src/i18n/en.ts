@@ -458,6 +458,7 @@ export const dict = {
   "toast.file.downloadFailed.description": "{{filename}}: {{error}}",
   
   "session.files.uploadHint": "Drag or click to upload files",
+  "session.files.uploadDisabled": "Upload disabled (not your project)",
   "file.delete.confirm": "Are you sure you want to delete {{filename}}?",
   "file.delete.label": "Delete file",
   "file.download.label": "Download file",

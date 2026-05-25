@@ -457,88 +457,96 @@ const isDesktop = createMediaQuery("(min-width: 768px)")
                            }}
                          />
                        </Match>
-                    </Switch>
+</Switch>
 
-                    <div
-                      class="mt-4 p-3 border-2 border-dashed border-border-weak rounded-lg hover:border-border-base transition-colors file-upload-zone cursor-pointer"
-                      style="min-height: 80px"
-onClick={(e) => {
-                         e.preventDefault()
-                         e.stopPropagation()
-                         const dir = uploadDir()
-                         if (!dir) return
-                         
-                         const input = document.createElement('input')
-                         input.type = 'file'
-                         input.multiple = true
-                         input.style.display = 'none'
-                         input.onchange = async (event) => {
-                           const target = event.target as HTMLInputElement
-                           const files = target.files
-                           if (!files || files.length === 0) return
-                           
-for (const selectedFile of Array.from(files)) {
+                    <Show when={isOwnProject()} fallback={
+                      <div class="mt-4 p-3 border-2 border-dashed border-border-weak rounded-lg opacity-50" style="min-height: 80px">
+                        <div class="flex flex-col items-center justify-center text-text-weaker">
+                          <Icon name="cloud-upload" class="size-6 mb-2" />
+                          <p class="text-12-regular">{language.t("session.files.uploadDisabled")}</p>
+                        </div>
+                      </div>
+                    }>
+                      <div
+                        class="mt-4 p-3 border-2 border-dashed border-border-weak rounded-lg hover:border-border-base transition-colors file-upload-zone cursor-pointer"
+                        style="min-height: 80px"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          const dir = uploadDir()
+                          if (!dir) return
+                          
+                          const input = document.createElement('input')
+                          input.type = 'file'
+                          input.multiple = true
+                          input.style.display = 'none'
+                          input.onchange = async (event) => {
+                            const target = event.target as HTMLInputElement
+                            const files = target.files
+                            if (!files || files.length === 0) return
+                            
+                            for (const selectedFile of Array.from(files)) {
                               const targetPath = `${dir}/${selectedFile.name}`
                               const formData = new FormData()
                               formData.append("file", selectedFile)
                               formData.append("path", targetPath)
-                             
-                             try {
-                               const response = await fetch(`/file/upload?directory=${sdk.directory}`, {
-                                 method: "POST",
-                                 body: formData,
-                               })
-                               
-                               if (!response.ok) {
-                                 const error = await response.json()
-                                 throw new Error(error.error || "Upload failed")
-                               }
-                               
-                               file.tree.refresh(dir)
-                               showToast({
-                                 variant: "success",
-                                 title: language.t("toast.file.uploadSuccess.title"),
-                                 description: language.t("toast.file.uploadSuccess.description", { filename: selectedFile.name }),
-                               })
-                             } catch (error) {
-                               const errorMsg = error instanceof Error ? error.message : String(error)
-                               showToast({
-                                 variant: "error",
-                                 title: language.t("toast.file.uploadFailed.title"),
-                                 description: `${selectedFile.name}: ${errorMsg}`,
-                               })
-                             }
-                           }
-                           document.body.removeChild(input)
-                         }
-                         document.body.appendChild(input)
-                         input.click()
-                       }}
-                      onDragEnter={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        e.stopImmediatePropagation()
-                        document.body.setAttribute("data-upload-zone-active", "true")
-                        document.body.setAttribute("data-prevent-drag-overlay", "true")
-                      }}
-                      onDragOver={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        e.stopImmediatePropagation()
-                        e.dataTransfer!.dropEffect = "copy"
-                      }}
-                      onDragLeave={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        e.stopImmediatePropagation()
-                        const target = e.target as HTMLElement
-                        const zone = target.closest(".file-upload-zone")
-                        if (zone && e.currentTarget === zone) {
-                          document.body.removeAttribute("data-upload-zone-active")
-                          document.body.removeAttribute("data-prevent-drag-overlay")
-                        }
-                      }}
-onDrop={async (e) => {
+                              
+                              try {
+                                const response = await fetch(`/file/upload?directory=${sdk.directory}`, {
+                                  method: "POST",
+                                  body: formData,
+                                })
+                                
+                                if (!response.ok) {
+                                  const error = await response.json()
+                                  throw new Error(error.error || "Upload failed")
+                                }
+                                
+                                file.tree.refresh(dir)
+                                showToast({
+                                  variant: "success",
+                                  title: language.t("toast.file.uploadSuccess.title"),
+                                  description: language.t("toast.file.uploadSuccess.description", { filename: selectedFile.name }),
+                                })
+                              } catch (error) {
+                                const errorMsg = error instanceof Error ? error.message : String(error)
+                                showToast({
+                                  variant: "error",
+                                  title: language.t("toast.file.uploadFailed.title"),
+                                  description: `${selectedFile.name}: ${errorMsg}`,
+                                })
+                              }
+                            }
+                            document.body.removeChild(input)
+                          }
+                          document.body.appendChild(input)
+                          input.click()
+                        }}
+                        onDragEnter={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          e.stopImmediatePropagation()
+                          document.body.setAttribute("data-upload-zone-active", "true")
+                          document.body.setAttribute("data-prevent-drag-overlay", "true")
+                        }}
+                        onDragOver={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          e.stopImmediatePropagation()
+                          e.dataTransfer!.dropEffect = "copy"
+                        }}
+                        onDragLeave={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          e.stopImmediatePropagation()
+                          const target = e.target as HTMLElement
+                          const zone = target.closest(".file-upload-zone")
+                          if (zone && e.currentTarget === zone) {
+                            document.body.removeAttribute("data-upload-zone-active")
+                            document.body.removeAttribute("data-prevent-drag-overlay")
+                          }
+                        }}
+                        onDrop={async (e) => {
                           e.preventDefault()
                           e.stopPropagation()
                           e.stopImmediatePropagation()
@@ -614,12 +622,13 @@ onDrop={async (e) => {
                             document.body.removeAttribute("data-drop-completed")
                           }, 100)
                         }}
-                    >
-                      <div class="flex flex-col items-center justify-center text-text-weak">
-                        <Icon name="cloud-upload" class="size-6 mb-2" />
-                        <p class="text-12-medium">{language.t("session.files.uploadHint")}</p>
+                      >
+                        <div class="flex flex-col items-center justify-center text-text-weak">
+                          <Icon name="cloud-upload" class="size-6 mb-2" />
+                          <p class="text-12-medium">{language.t("session.files.uploadHint")}</p>
+                        </div>
                       </div>
-                    </div>
+                    </Show>
                   </Tabs.Content>
                 </Tabs>
               </div>
