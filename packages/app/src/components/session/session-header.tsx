@@ -252,17 +252,34 @@ export function SessionHeader() {
       .finally(() => {
         setOpenRequest("app", undefined)
       })
-  }
+}
 
+  const [leftMount, setLeftMount] = createSignal<HTMLElement | null>(null)
   const [centerMount, setCenterMount] = createSignal<HTMLElement | null>(null)
   const [rightMount, setRightMount] = createSignal<HTMLElement | null>(null)
   onMount(() => {
+    setLeftMount(document.getElementById("opencode-titlebar-left"))
     setCenterMount(document.getElementById("opencode-titlebar-center"))
     setRightMount(document.getElementById("opencode-titlebar-right"))
   })
 
   return (
     <>
+      <Show when={leftMount()}>
+        {(mount) => (
+          <Portal mount={mount()}>
+            <Button
+              variant="ghost"
+              size="small"
+              onClick={() => window.open("https://gitcode.com/luanchaowei/opencode/blob/dev/doc/web-interface-guide.md", "_blank")}
+              aria-label={language.t("session.header.help")}
+              class="text-text-interactive-base hover:text-text-interactive-base-hover"
+            >
+              <span class="text-12-regular">{language.t("session.header.help")}</span>
+            </Button>
+          </Portal>
+        )}
+      </Show>
       <Show when={search() && centerMount()}>
         {(mount) => (
           <Portal mount={mount()}>
@@ -414,18 +431,6 @@ export function SessionHeader() {
                         </div>
                       </Button>
                     </TooltipKeybind>
-                    <Tooltip value={language.t("session.header.help")}>
-                      <Button
-                        variant="ghost"
-                        class="titlebar-icon w-8 h-6 p-0 box-border"
-                        onClick={() => window.open("https://gitcode.com/luanchaowei/opencode/blob/dev/doc/web-interface-guide.md", "_blank")}
-                        aria-label={language.t("session.header.help")}
-                      >
-                        <div class="relative flex items-center justify-center size-4">
-                          <Icon size="small" name="help" class="text-icon-weak" />
-                        </div>
-                      </Button>
-                    </Tooltip>
                   </Show>
                 </div>
               </div>
