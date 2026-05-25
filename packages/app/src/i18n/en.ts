@@ -623,6 +623,7 @@ export const dict = {
   "session.header.open.app.androidStudio": "Android Studio",
   "session.header.open.app.powershell": "PowerShell",
   "session.header.open.app.sublimeText": "Sublime Text",
+  "session.header.help": "Help",
 
   "status.popover.trigger": "Status",
   "status.popover.ariaLabel": "Server configurations",

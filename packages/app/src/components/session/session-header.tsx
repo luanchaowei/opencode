@@ -414,6 +414,18 @@ export function SessionHeader() {
                         </div>
                       </Button>
                     </TooltipKeybind>
+                    <Tooltip value={language.t("session.header.help")}>
+                      <Button
+                        variant="ghost"
+                        class="titlebar-icon w-8 h-6 p-0 box-border"
+                        onClick={() => window.open("https://gitcode.com/luanchaowei/opencode/blob/dev/doc/web-interface-guide.md", "_blank")}
+                        aria-label={language.t("session.header.help")}
+                      >
+                        <div class="relative flex items-center justify-center size-4">
+                          <Icon size="small" name="help" class="text-icon-weak" />
+                        </div>
+                      </Button>
+                    </Tooltip>
                   </Show>
                 </div>
               </div>
