@@ -8,7 +8,6 @@ export async function loadRootSessionsWithFallback(input: RootLoadArgs) {
       limit: input.limit,
       archived: false,
     }
-    console.log("[session-load] query params:", query)
     const result = await input.list(query)
     const rawCount = result.data?.length ?? 0
     return {
