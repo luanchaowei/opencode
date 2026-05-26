@@ -2307,9 +2307,20 @@ export default function Layout(props: ParentProps) {
 return (
     <div class="relative bg-background-base flex-1 min-h-0 min-w-0 flex flex-col select-none [&_input]:select-text [&_textarea]:select-text [&_[contenteditable]]:select-text">
       {autoselecting() ?? ""}
-      <div class="text-center py-1.5 text-12-medium" style="background-color: #fbbf24; color: #78350f;">
-        受黄区算力资源影响，工作时间任务可能需要排队，请耐心等待！
-      </div>
+      <Show when={language.t("enterprise.queueWarning")}>
+        <div class="overflow-hidden py-1.5" style="background-color: #fbbf24; color: #78350f;">
+          <div class="animate-marquee whitespace-nowrap inline-block">
+            <For each={[0, 1, 2, 3, 4, 5, 6, 7]}>
+              {() => (
+                <>
+                  <span class="text-12-medium">{language.t("enterprise.queueWarning")}</span>
+                  <span class="ml-[5vw]" />
+                </>
+              )}
+            </For>
+          </div>
+        </div>
+      </Show>
       <Titlebar />
       <div class="flex-1 min-h-0 min-w-0 flex">
         <div class="flex-1 min-h-0 relative">

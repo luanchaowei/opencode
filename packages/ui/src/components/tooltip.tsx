@@ -10,6 +10,7 @@ export interface TooltipProps extends ComponentProps<typeof KobalteTooltip> {
   contentStyle?: JSX.CSSProperties
   inactive?: boolean
   forceOpen?: boolean
+  interactive?: boolean
 }
 
 export interface TooltipKeybindProps extends Omit<TooltipProps, "value"> {
@@ -33,11 +34,14 @@ export function TooltipKeybind(props: TooltipKeybindProps) {
 }
 
 export function Tooltip(props: TooltipProps) {
-  let ref: HTMLDivElement | undefined
+  let triggerRef: HTMLDivElement | undefined
+  let contentRef: HTMLDivElement | undefined
   const [state, setState] = createStore({
     open: false,
     block: false,
     expand: false,
+    mouseInTrigger: false,
+    mouseInContent: false,
   })
   const [local, others] = splitProps(props, [
     "children",
@@ -48,25 +52,26 @@ export function Tooltip(props: TooltipProps) {
     "forceOpen",
     "ignoreSafeArea",
     "value",
+    "interactive",
   ])
 
   const close = () => setState("open", false)
 
   const inside = () => {
     const active = document.activeElement
-    if (!ref || !active) return false
-    return ref.contains(active)
+    if (!triggerRef || !active) return false
+    return triggerRef.contains(active)
   }
 
   const drop = (expand = state.expand) => {
     if (expand) return
-    if (ref?.matches(":hover")) return
+    if (triggerRef?.matches(":hover")) return
     if (inside()) return
     setState("block", false)
   }
 
   const sync = () => {
-    const expand = !!ref?.querySelector('[aria-expanded="true"], [data-expanded]')
+    const expand = !!triggerRef?.querySelector('[aria-expanded="true"], [data-expanded]')
     setState("expand", expand)
     if (expand) {
       setState("block", true)
@@ -81,16 +86,16 @@ export function Tooltip(props: TooltipProps) {
     close()
   }
 
-  const leave = () => {
-    if (!inside()) close()
-    drop()
+  const shouldStayOpen = () => {
+    if (!local.interactive) return false
+    return state.mouseInTrigger || state.mouseInContent
   }
 
   createEffect(() => {
-    if (!ref) return
+    if (!triggerRef) return
     sync()
     const obs = new MutationObserver(sync)
-    obs.observe(ref, {
+    obs.observe(triggerRef, {
       subtree: true,
       childList: true,
       attributes: true,
@@ -108,7 +113,7 @@ export function Tooltip(props: TooltipProps) {
         <KobalteTooltip
           gutter={4}
           {...others}
-          closeDelay={0}
+          closeDelay={local.interactive ? 300 : 0}
           ignoreSafeArea={local.ignoreSafeArea ?? true}
           open={local.forceOpen || state.open}
           onOpenChange={(open) => {
@@ -118,40 +123,72 @@ export function Tooltip(props: TooltipProps) {
               justClickedTrigger = false
               return
             }
+            if (!open && shouldStayOpen()) return
             setState("open", open)
           }}
         >
           <KobalteTooltip.Trigger
-            ref={ref}
+            ref={triggerRef}
             as={"div"}
             data-component="tooltip-trigger"
             class={local.class}
-            onPointerDownCapture={arm}
+            onPointerDownCapture={(e: PointerEvent) => {
+              if (local.interactive && state.open) return
+              arm()
+            }}
             onKeyDownCapture={(event: KeyboardEvent) => {
               if (event.key !== "Enter" && event.key !== " ") return
               arm()
             }}
-            onPointerLeave={leave}
+            onPointerEnter={() => {
+              if (local.interactive) setState("mouseInTrigger", true)
+            }}
+            onPointerLeave={() => {
+              if (local.interactive) {
+                setState("mouseInTrigger", false)
+                setTimeout(() => {
+                  if (!state.mouseInTrigger && !state.mouseInContent) close()
+                }, 100)
+              } else {
+                if (!inside()) close()
+                drop()
+              }
+            }}
             onFocusOut={() => requestAnimationFrame(() => drop())}
           >
             {local.children}
           </KobalteTooltip.Trigger>
           <KobalteTooltip.Portal>
             <KobalteTooltip.Content
+              ref={contentRef}
               data-component="tooltip"
               data-placement={props.placement}
               data-force-open={local.forceOpen}
               class={local.contentClass}
               style={local.contentStyle}
-              onPointerDownOutside={(e) => {
-                if (ref === e.target || (e.target instanceof Node && ref?.contains(e.target))) {
+              onPointerEnter={() => {
+                if (local.interactive) {
+                  setState("mouseInContent", true)
+                  setState("open", true)
+                }
+              }}
+              onPointerLeave={() => {
+                if (local.interactive) {
+                  setState("mouseInContent", false)
+                  setTimeout(() => {
+                    if (!state.mouseInTrigger && !state.mouseInContent) close()
+                  }, 100)
+                }
+              }}
+              onPointerDownOutside={(e: Event) => {
+                if (local.interactive) return
+                if (triggerRef === e.target || (e.target instanceof Node && triggerRef?.contains(e.target))) {
                   justClickedTrigger = true
                 }
                 e.preventDefault()
               }}
             >
               {local.value}
-              {/* <KobalteTooltip.Arrow data-slot="tooltip-arrow" /> */}
             </KobalteTooltip.Content>
           </KobalteTooltip.Portal>
         </KobalteTooltip>

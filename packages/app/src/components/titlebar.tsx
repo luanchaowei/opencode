@@ -1,10 +1,11 @@
-import { createEffect, createMemo, Show, untrack } from "solid-js"
+import { createEffect, createMemo, For, Show, untrack } from "solid-js"
 import { createStore } from "solid-js/store"
 import { useLocation, useNavigate, useParams } from "@solidjs/router"
 import { IconButton } from "@opencode-ai/ui/icon-button"
 import { Icon } from "@opencode-ai/ui/icon"
 import { Button } from "@opencode-ai/ui/button"
 import { Tooltip, TooltipKeybind } from "@opencode-ai/ui/tooltip"
+import { HoverCard } from "@opencode-ai/ui/hover-card"
 import { useTheme } from "@opencode-ai/ui/theme/context"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 
@@ -295,6 +296,22 @@ export function Titlebar() {
                 </div>
               </Show>
               <div id="opencode-titlebar-left" class="flex items-center gap-3 min-w-0 px-2" />
+              <HoverCard
+                placement="bottom"
+                openDelay={200}
+                closeDelay={100}
+                trigger={
+                  <span class="text-12-regular text-text-weak px-2 cursor-help border-l border-border-weak-base ml-4 pl-3">
+                    {language.t("enterprise.contactAdmin")}
+                  </span>
+                }
+              >
+                <div class="flex flex-col gap-1 text-left p-2 bg-surface-panel rounded-md border border-border-weak-base shadow-md select-text">
+                  <For each={language.t("enterprise.contactAdminList").split('\n')}>
+                    {(line) => <div class="text-12-regular">{line}</div>}
+                  </For>
+                </div>
+              </HoverCard>
               {["beta", "dev"].includes(import.meta.env.VITE_OPENCODE_CHANNEL) && (
                 <div class="bg-icon-interactive-base text-[#FFF] font-medium px-2 rounded-sm uppercase font-mono">
                   {import.meta.env.VITE_OPENCODE_CHANNEL.toUpperCase()}

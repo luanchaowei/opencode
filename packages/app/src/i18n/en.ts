@@ -675,6 +675,10 @@ export const dict = {
   "common.edit": "Edit",
   "common.loadMore": "Load more",
   "common.key.esc": "ESC",
+
+  "enterprise.contactAdmin": "Contact Admin",
+  "enterprise.contactAdminList": "Admin1: 123456789\nAdmin2: 13912345678\nAdmin3: 13812345678",
+  "enterprise.queueWarning": "Due to computing resources, tasks may need to queue, please wait patiently!!!",
   "common.key.ctrl": "Ctrl",
   "common.key.alt": "Alt",
   "common.key.shift": "Shift",
