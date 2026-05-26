@@ -61,7 +61,7 @@ export default [
           try {
             const clientIP = getClientIP(req)
             const contactAdmin = process.env.VITE_CONTACT_ADMIN || ""
-            const contactList = contactAdmin.split('\n').filter(line => line.trim())
+            const contactList = contactAdmin.split('|').filter(line => line.trim())
             res.setHeader("Content-Type", "application/json")
             res.end(JSON.stringify({ clientIP, contactAdmin: contactList }))
           } catch (error) {
