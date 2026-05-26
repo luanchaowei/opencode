@@ -620,7 +620,6 @@ export const dict = {
   "common.key.esc": "ESC",
 
   "enterprise.contactAdmin": "联系管理员",
-  "enterprise.contactAdminList": "张三: 12345678901\n李四: 13912345678\n王五: 13812345678",
   "enterprise.queueWarning": "受算力资源影响，任务可能需要排队，请耐心等待！！！",
 
   "sidebar.menu.toggle": "切换菜单",

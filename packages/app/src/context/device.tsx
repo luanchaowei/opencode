@@ -5,18 +5,21 @@ import { getFilename } from "@opencode-ai/core/util/path"
 export const { use: useDevice, provider: DeviceProvider } = createSimpleContext({
   name: "Device",
   init: () => {
-    const [clientIP] = createResource(async () => {
+    const [deviceInfo] = createResource(async () => {
       try {
         const response = await fetch('/device/info')
         if (response.ok) {
-          const { clientIP } = await response.json()
-          return clientIP
+          const { clientIP, contactAdmin } = await response.json()
+          return { clientIP, contactAdmin }
         }
       } catch (error) {
         console.error('Failed to get device info:', error)
       }
-      return null
+      return { clientIP: null, contactAdmin: [] }
     })
+
+    const clientIP = () => deviceInfo()?.clientIP
+    const contactAdmin = () => deviceInfo()?.contactAdmin ?? []
 
     const isOwnProject = (projectWorktree: string): boolean => {
       const ip = clientIP()
@@ -28,6 +31,7 @@ export const { use: useDevice, provider: DeviceProvider } = createSimpleContext(
 
     return {
       clientIP,
+      contactAdmin,
       isOwnProject,
     }
   },

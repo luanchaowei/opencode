@@ -296,6 +296,7 @@ export function Titlebar() {
                 </div>
               </Show>
               <div id="opencode-titlebar-left" class="flex items-center gap-3 min-w-0 px-2" />
+<Show when={device.contactAdmin().length > 0}>
               <HoverCard
                 placement="bottom"
                 openDelay={200}
@@ -307,11 +308,12 @@ export function Titlebar() {
                 }
               >
                 <div class="flex flex-col gap-1 text-left p-2 bg-surface-panel rounded-md border border-border-weak-base shadow-md select-text">
-                  <For each={language.t("enterprise.contactAdminList").split('\n')}>
-                    {(line) => <div class="text-12-regular">{line}</div>}
+                  <For each={device.contactAdmin()}>
+                    {(contact) => <div class="text-12-regular">{contact}</div>}
                   </For>
                 </div>
               </HoverCard>
+            </Show>
               {["beta", "dev"].includes(import.meta.env.VITE_OPENCODE_CHANNEL) && (
                 <div class="bg-icon-interactive-base text-[#FFF] font-medium px-2 rounded-sm uppercase font-mono">
                   {import.meta.env.VITE_OPENCODE_CHANNEL.toUpperCase()}

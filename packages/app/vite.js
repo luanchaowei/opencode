@@ -60,8 +60,10 @@ export default [
         if (req.url?.startsWith("/device/info") && req.method === "GET") {
           try {
             const clientIP = getClientIP(req)
+            const contactAdmin = process.env.VITE_CONTACT_ADMIN || ""
+            const contactList = contactAdmin.split('\n').filter(line => line.trim())
             res.setHeader("Content-Type", "application/json")
-            res.end(JSON.stringify({ clientIP }))
+            res.end(JSON.stringify({ clientIP, contactAdmin: contactList }))
           } catch (error) {
             res.statusCode = 500
             res.end(JSON.stringify({ error: error.message }))
