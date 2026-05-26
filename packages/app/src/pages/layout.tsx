@@ -2308,6 +2308,9 @@ export default function Layout(props: ParentProps) {
     <div class="relative bg-background-base flex-1 min-h-0 min-w-0 flex flex-col select-none [&_input]:select-text [&_textarea]:select-text [&_[contenteditable]]:select-text">
       {autoselecting() ?? ""}
       <Titlebar />
+      <div class="text-center py-1.5 text-12-medium" style="background-color: #fbbf24; color: #78350f;">
+        受算力资源影响，工作时间任务可能需要排队，请耐心等待！
+      </div>
       <div class="flex-1 min-h-0 min-w-0 flex">
         <div class="flex-1 min-h-0 relative">
           <div class="size-full relative overflow-x-hidden">
