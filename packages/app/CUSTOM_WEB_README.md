@@ -254,6 +254,77 @@ VITE_DISABLE_BUTTON=true \
 bun --cwd packages/app dev --host $WEB_HOST --port $WEB_PORT
 ```
 
+### 企业功能环境变量
+
+OpenCode 提供以下企业级功能环境变量，用于配置联系管理员、案例库和意见反馈：
+
+#### VITE_CONTACT_ADMIN - 联系管理员
+
+配置管理员联系方式，显示在右侧悬浮的"联系管理员"按钮中。格式为 `姓名:联系方式`，多个联系人用 `|` 分隔。
+
+**示例：**
+
+```bash
+# 单个联系人
+VITE_CONTACT_ADMIN="张三: 13800138000"
+
+# 多个联系人
+VITE_CONTACT_ADMIN="张三: 13800138000|李四: 13900139000|王五: wangwu@example.com"
+```
+
+**注意：** 不设置此变量时，"联系管理员"按钮不会显示。
+
+#### VITE_CASE_LIBRARY_DIR - 案例库目录
+
+配置案例库（文档库）的根目录路径。用户可以通过右侧悬浮的"案例库"按钮浏览此目录下的文件。
+
+**示例：**
+
+```bash
+VITE_CASE_LIBRARY_DIR="/home/yourname/case-library"
+```
+
+**功能：**
+- 支持文件和文件夹浏览
+- 支持软链接（symlink）
+- 支持 Markdown 文件渲染
+- 支持全屏查看和拖动
+
+**注意：** 不设置此变量时，"案例库"按钮不会显示。
+
+#### VITE_FEEDBACK_URL - 意见反馈URL
+
+配置意见反馈页面的链接地址。点击右侧悬浮的"意见反馈"按钮会打开此链接。
+
+**示例：**
+
+```bash
+VITE_FEEDBACK_URL="https://example.com/feedback"
+```
+
+**注意：** 不设置此变量时，"意见反馈"按钮仍会显示，但点击不会打开链接。
+
+#### 综合配置示例
+
+```bash
+# 完整企业功能配置
+VITE_OPENCODE_DEFAULT_DIR=$WORK_DIR \
+VITE_CONTACT_ADMIN="张三: 13800138000|李四: lisi@example.com" \
+VITE_CASE_LIBRARY_DIR="/home/yourname/case-library" \
+VITE_FEEDBACK_URL="https://feedback.example.com" \
+bun --cwd packages/app dev --host $WEB_HOST --port $WEB_PORT
+```
+
+或使用 restart.sh 脚本：
+
+```bash
+export VITE_CONTACT_ADMIN="张三: 13800138000|李四: lisi@example.com"
+export VITE_CASE_LIBRARY_DIR="/home/yourname/case-library"
+export VITE_FEEDBACK_URL="https://feedback.example.com"
+
+./restart.sh --web-host 0.0.0.0 --server-host 192.168.1.100
+```
+
 ### 自定义服务端地址
 
 如果Web和服务端不在同一主机：
