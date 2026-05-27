@@ -4,6 +4,7 @@ import { Dialog } from "@opencode-ai/ui/dialog"
 import { Icon } from "@opencode-ai/ui/icon"
 import { Spinner } from "@opencode-ai/ui/spinner"
 import { Button } from "@opencode-ai/ui/button"
+import { marked } from "marked"
 
 export function CaseLibraryDialog() {
   const language = useLanguage()
@@ -22,14 +23,17 @@ export function CaseLibraryDialog() {
   })
   
   const [content] = createResource(selectedFile, async (filePath) => {
-    if (!filePath) return ""
+    if (!filePath) return { html: "", isMarkdown: false }
     try {
       const res = await fetch(`/api/case-library/read?path=${encodeURIComponent(filePath)}`)
-      if (!res.ok) return ""
+      if (!res.ok) return { html: "", isMarkdown: false }
       const data = await res.json()
-      return data.content || ""
+      const text = data.content || ""
+      const isMarkdown = filePath.toLowerCase().endsWith(".md")
+      const html = isMarkdown ? await marked.parse(text) : text
+      return { html, isMarkdown }
     } catch {
-      return ""
+      return { html: "", isMarkdown: false }
     }
   })
   
@@ -112,9 +116,18 @@ export function CaseLibraryDialog() {
           <Show when={selectedFile()}>
             <Suspense fallback={<Spinner />}>
               <div class="text-12-medium mb-2 text-text-base">{selectedFile()}</div>
-              <pre class="text-12-regular whitespace-pre-wrap bg-surface-panel p-3 rounded border border-border-weak-base overflow-auto flex-1 min-h-0">
-                {content()}
-              </pre>
+              <Show when={content()?.isMarkdown}>
+                <div 
+                  data-component="markdown"
+                  class="flex-1 min-h-0 overflow-auto bg-surface-panel p-4 rounded border border-border-weak-base"
+                  innerHTML={content()?.html || ""}
+                />
+              </Show>
+              <Show when={!content()?.isMarkdown}>
+                <pre class="text-12-regular whitespace-pre-wrap bg-surface-panel p-3 rounded border border-border-weak-base overflow-auto flex-1 min-h-0">
+                  {content()?.html}
+                </pre>
+              </Show>
             </Suspense>
           </Show>
         </div>
