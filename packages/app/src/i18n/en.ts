@@ -680,6 +680,8 @@ export const dict = {
   "enterprise.queueWarning": "Due to computing resources, tasks may need to queue, please wait patiently!!!",
   "enterprise.feedback": "Feedback",
   "enterprise.feedbackUrl": "https://example.com/feedback",
+  "enterprise.caseLibrary": "Case Library",
+  "enterprise.selectFileToView": "Click file to view content",
   "common.key.ctrl": "Ctrl",
   "common.key.alt": "Alt",
   "common.key.shift": "Shift",

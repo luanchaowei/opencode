@@ -63,8 +63,9 @@ export default [
             const contactAdmin = process.env.VITE_CONTACT_ADMIN || ""
             const contactList = contactAdmin.split('|').filter(line => line.trim())
             const feedbackUrl = process.env.VITE_FEEDBACK_URL || ""
+            const caseLibraryDir = process.env.VITE_CASE_LIBRARY_DIR || ""
             res.setHeader("Content-Type", "application/json")
-            res.end(JSON.stringify({ clientIP, contactAdmin: contactList, feedbackUrl }))
+            res.end(JSON.stringify({ clientIP, contactAdmin: contactList, feedbackUrl, caseLibraryDir }))
           } catch (error) {
             res.statusCode = 500
             res.end(JSON.stringify({ error: error.message }))
@@ -100,6 +101,81 @@ export default [
             
             res.setHeader("Content-Type", "application/json")
             res.end(JSON.stringify({ success: true, path: targetPath }))
+          } catch (error) {
+            res.statusCode = 500
+            res.end(JSON.stringify({ error: error.message }))
+          }
+        } else {
+          next()
+        }
+      })
+    },
+  },
+  {
+    name: "opencode-desktop:case-library-api",
+    configureServer(server) {
+      server.middlewares.use(async (req, res, next) => {
+        if (req.url?.startsWith("/api/case-library/list") && req.method === "GET") {
+          try {
+            const caseLibraryDir = process.env.VITE_CASE_LIBRARY_DIR || ""
+            res.setHeader("Content-Type", "application/json")
+            if (!caseLibraryDir || !existsSync(caseLibraryDir)) {
+              res.end(JSON.stringify({ files: [] }))
+              return
+            }
+            
+            const urlObj = new URL(req.url, `http://${req.headers.host}`)
+            const subPath = urlObj.searchParams.get("path") || ""
+            const targetDir = subPath ? join(caseLibraryDir, subPath) : caseLibraryDir
+            
+            if (!existsSync(targetDir)) {
+              res.end(JSON.stringify({ files: [], dirs: [] }))
+              return
+            }
+            
+            const files = []
+            const dirs = []
+            const entries = readdirSync(targetDir, { withFileTypes: true })
+            for (const entry of entries) {
+              if (entry.isDirectory()) {
+                dirs.push({ name: entry.name, path: subPath ? `${subPath}/${entry.name}` : entry.name })
+              } else if (entry.isFile()) {
+                files.push({ name: entry.name, path: subPath ? `${subPath}/${entry.name}` : entry.name })
+              }
+            }
+            
+            res.end(JSON.stringify({ files, dirs }))
+          } catch (error) {
+            res.statusCode = 500
+            res.end(JSON.stringify({ error: error.message }))
+          }
+        } else if (req.url?.startsWith("/api/case-library/read") && req.method === "GET") {
+          try {
+            const caseLibraryDir = process.env.VITE_CASE_LIBRARY_DIR || ""
+            res.setHeader("Content-Type", "application/json")
+            if (!caseLibraryDir) {
+              res.statusCode = 400
+              res.end(JSON.stringify({ error: "Case library not configured" }))
+              return
+            }
+            
+            const urlObj = new URL(req.url, `http://${req.headers.host}`)
+            const filePath = urlObj.searchParams.get("path")
+            if (!filePath) {
+              res.statusCode = 400
+              res.end(JSON.stringify({ error: "Missing path" }))
+              return
+            }
+            
+            const fullPath = join(caseLibraryDir, filePath)
+            if (!existsSync(fullPath)) {
+              res.statusCode = 404
+              res.end(JSON.stringify({ error: "File not found" }))
+              return
+            }
+            
+            const content = readFileSync(fullPath, "utf-8")
+            res.end(JSON.stringify({ content }))
           } catch (error) {
             res.statusCode = 500
             res.end(JSON.stringify({ error: error.message }))

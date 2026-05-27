@@ -623,6 +623,8 @@ export const dict = {
   "enterprise.queueWarning": "受算力资源影响，任务可能需要排队，请耐心等待！！！",
   "enterprise.feedback": "意见反馈",
   "enterprise.feedbackUrl": "https://example.com/feedback",
+  "enterprise.caseLibrary": "案例库",
+  "enterprise.selectFileToView": "点击文件查看内容",
 
   "sidebar.menu.toggle": "切换菜单",
   "sidebar.nav.projectsAndSessions": "项目和会话",

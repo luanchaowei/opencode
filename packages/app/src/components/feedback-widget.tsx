@@ -1,12 +1,15 @@
 import { createSignal, onMount, onCleanup, For, Show } from "solid-js"
 import { useLanguage } from "@/context/language"
 import { useDevice } from "@/context/device"
+import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { HoverCard } from "@opencode-ai/ui/hover-card"
+import { CaseLibraryDialog } from "./dialog-case-library"
 
 export function FeedbackWidget() {
   const language = useLanguage()
   const device = useDevice()
-  const [positionY, setPositionY] = createSignal(window.innerHeight - 120)
+  const dialog = useDialog()
+  const [positionY, setPositionY] = createSignal(window.innerHeight - 200)
   const [isDragging, setIsDragging] = createSignal(false)
   const [dragOffsetY, setDragOffsetY] = createSignal(0)
   
@@ -50,6 +53,22 @@ export function FeedbackWidget() {
       }}
       onMouseDown={handleMouseDown}
     >
+      <Show when={device.caseLibraryDir()}>
+        <div
+          class="flex items-center gap-2 px-3 py-2 rounded-lg shadow-sm text-12-medium transition-all border cursor-pointer"
+          style="background: rgba(245, 158, 11, 0.1); border-color: rgba(245, 158, 11, 0.3); color: #f59e0b;"
+          onClick={(e) => {
+            if (isDragging()) return
+            e.stopPropagation()
+            dialog.show(() => <CaseLibraryDialog />)
+          }}
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8M10 12h4" />
+          </svg>
+          {language.t("enterprise.caseLibrary")}
+        </div>
+      </Show>
       <Show when={device.contactAdmin().length > 0}>
         <HoverCard
           placement="left"
@@ -75,19 +94,19 @@ export function FeedbackWidget() {
         </HoverCard>
       </Show>
       <div
-        class="flex items-center gap-2 px-3 py-2 rounded-lg shadow-sm text-12-medium transition-all border cursor-pointer"
-        style="background: rgba(34, 197, 94, 0.1); border-color: rgba(34, 197, 94, 0.3); color: #22c55e;"
-        onClick={(e) => {
-          if (isDragging()) return
-          e.stopPropagation()
-          const url = device.feedbackUrl()
-          if (url) window.open(url, "_blank")
-        }}
-      >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-        </svg>
-        {language.t("enterprise.feedback")}
+          class="flex items-center gap-2 px-3 py-2 rounded-lg shadow-sm text-12-medium transition-all border cursor-pointer"
+          style="background: rgba(34, 197, 94, 0.1); border-color: rgba(34, 197, 94, 0.3); color: #22c55e;"
+          onClick={(e) => {
+            if (isDragging()) return
+            e.stopPropagation()
+            const url = device.feedbackUrl()
+            if (url) window.open(url, "_blank")
+          }}
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+          </svg>
+          {language.t("enterprise.feedback")}
       </div>
     </div>
   )

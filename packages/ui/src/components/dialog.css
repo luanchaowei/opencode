@@ -71,6 +71,12 @@
           line-height: var(--line-height-x-large); /* 150% */
           letter-spacing: var(--letter-spacing-tight);
         }
+
+        [data-slot="dialog-header-actions"] {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
         /* [data-slot="dialog-close-button"] {} */
       }
 
@@ -132,6 +138,18 @@
   &[data-size="x-large"] [data-slot="dialog-container"] {
     width: min(calc(100vw - 32px), 960px);
     height: min(calc(100vh - 32px), 600px);
+  }
+
+  &[data-size="fullscreen"] [data-slot="dialog-container"] {
+    width: calc(100vw - 32px);
+    height: calc(100vh - 32px);
+    max-width: calc(100vw - 32px);
+    max-height: calc(100vh - 32px);
+
+    [data-slot="dialog-content"] {
+      max-height: calc(100vh - 32px);
+      height: 100%;
+    }
   }
 }
 

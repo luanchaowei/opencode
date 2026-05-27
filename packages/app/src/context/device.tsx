@@ -9,18 +9,19 @@ export const { use: useDevice, provider: DeviceProvider } = createSimpleContext(
       try {
         const response = await fetch('/device/info')
         if (response.ok) {
-          const { clientIP, contactAdmin, feedbackUrl } = await response.json()
-          return { clientIP, contactAdmin, feedbackUrl }
+          const { clientIP, contactAdmin, feedbackUrl, caseLibraryDir } = await response.json()
+          return { clientIP, contactAdmin, feedbackUrl, caseLibraryDir }
         }
       } catch (error) {
         console.error('Failed to get device info:', error)
       }
-      return { clientIP: null, contactAdmin: [], feedbackUrl: "" }
+      return { clientIP: null, contactAdmin: [], feedbackUrl: "", caseLibraryDir: "" }
     })
 
     const clientIP = () => deviceInfo()?.clientIP
     const contactAdmin = () => deviceInfo()?.contactAdmin ?? []
     const feedbackUrl = () => deviceInfo()?.feedbackUrl ?? ""
+    const caseLibraryDir = () => deviceInfo()?.caseLibraryDir ?? ""
 
     const isOwnProject = (projectWorktree: string): boolean => {
       const ip = clientIP()
@@ -34,6 +35,7 @@ export const { use: useDevice, provider: DeviceProvider } = createSimpleContext(
       clientIP,
       contactAdmin,
       feedbackUrl,
+      caseLibraryDir,
       isOwnProject,
     }
   },
