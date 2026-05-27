@@ -459,6 +459,7 @@ export const dict = {
   
   "session.files.uploadHint": "Drag or click to upload files",
   "session.files.uploadDisabled": "Upload disabled (not your project)",
+  "session.files.uploading": "Uploading, please wait...",
   "session.files.initializing": "Initializing session...",
   "file.delete.confirm": "Are you sure you want to delete {{filename}}?",
   "file.delete.label": "Delete file",

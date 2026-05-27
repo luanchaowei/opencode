@@ -1,4 +1,4 @@
-import { For, Match, Show, Switch, createEffect, createMemo, onCleanup, type JSX } from "solid-js"
+import { For, Match, Show, Switch, createEffect, createMemo, onCleanup, type JSX, createSignal } from "solid-js"
 import { createStore } from "solid-js/store"
 import { createMediaQuery } from "@solid-primitives/media"
 import { Tabs } from "@opencode-ai/ui/tabs"
@@ -66,6 +66,7 @@ const language = useLanguage()
 const isDesktop = createMediaQuery("(min-width: 768px)")
   const sessionID = createMemo(() => params.id)
   const uploadDir = createMemo(() => sessionID() ? `uploads/${sessionID()}` : undefined)
+  const [uploading, setUploading] = createSignal(false)
   
   const isOwnProject = createMemo(() => {
     const directory = decode64(params.dir)
@@ -467,13 +468,18 @@ const isDesktop = createMediaQuery("(min-width: 768px)")
                       </Show>
                     </>}>
                       <div
-                        class="mt-4 p-3 border-2 border-dashed border-border-weak rounded-lg hover:border-border-base transition-colors file-upload-zone cursor-pointer"
+                        class="mt-4 p-3 border-2 border-dashed rounded-lg transition-colors file-upload-zone"
+                        classList={{
+                          "cursor-pointer": !uploading(),
+                          "border-border-weak hover:border-border-base": !uploading(),
+                          "border-interactive-base bg-surface-interactive-weak": uploading(),
+                        }}
                         style="min-height: 80px"
                         onClick={(e) => {
                           e.preventDefault()
                           e.stopPropagation()
                           const dir = uploadDir()
-                          if (!dir) return
+                          if (!dir || uploading()) return
                           
                           const input = document.createElement('input')
                           input.type = 'file'
@@ -483,6 +489,8 @@ const isDesktop = createMediaQuery("(min-width: 768px)")
                             const target = event.target as HTMLInputElement
                             const files = target.files
                             if (!files || files.length === 0) return
+                            
+                            setUploading(true)
                             
                             for (const selectedFile of Array.from(files)) {
                               const targetPath = `${dir}/${selectedFile.name}`
@@ -516,6 +524,8 @@ const isDesktop = createMediaQuery("(min-width: 768px)")
                                 })
                               }
                             }
+                            
+                            setUploading(false)
                             document.body.removeChild(input)
                           }
                           document.body.appendChild(input)
@@ -555,10 +565,12 @@ const isDesktop = createMediaQuery("(min-width: 768px)")
                           document.body.removeAttribute("data-prevent-drag-overlay")
 
                           const dir = uploadDir()
-                          if (!dir) return
+                          if (!dir || uploading()) return
 
                           const items = Array.from(e.dataTransfer!.items)
                           if (items.length === 0) return
+
+                          setUploading(true)
 
                           // Upload a single file
                           const uploadFile = async (file: File, path: string) => {
@@ -616,15 +628,18 @@ const isDesktop = createMediaQuery("(min-width: 768px)")
                             }
                           }
 
+                          setUploading(false)
                           file.tree.refresh(dir)
                           setTimeout(() => {
                             document.body.removeAttribute("data-drop-completed")
                           }, 100)
                         }}
                       >
-                        <div class="flex flex-col items-center justify-center text-text-weak">
-                          <Icon name="cloud-upload" class="size-6 mb-2" />
-                          <p class="text-12-medium">{language.t("session.files.uploadHint")}</p>
+                        <div classList={{ "flex flex-col items-center justify-center text-text-weak": !uploading(), "flex flex-col items-center justify-center text-text-strong": uploading() }}>
+                          <Show when={uploading()} fallback={<Icon name="cloud-upload" class="size-6 mb-2" />}>
+                            <Spinner class="mb-2" />
+                          </Show>
+                          <p class="text-12-medium">{uploading() ? language.t("session.files.uploading") : language.t("session.files.uploadHint")}</p>
                         </div>
                       </div>
                     </Show>

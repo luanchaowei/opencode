@@ -21,6 +21,7 @@ import { useComments } from "@/context/comments"
 import { Button } from "@opencode-ai/ui/button"
 import { DockShellForm, DockTray } from "@opencode-ai/ui/dock-surface"
 import { Icon } from "@opencode-ai/ui/icon"
+import { Spinner } from "@opencode-ai/ui/spinner"
 import { ProviderIcon } from "@opencode-ai/ui/provider-icon"
 import { Tooltip, TooltipKeybind } from "@opencode-ai/ui/tooltip"
 import { IconButton } from "@opencode-ai/ui/icon-button"
@@ -265,6 +266,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     draggingType: "image" | "@mention" | null
     mode: "normal" | "shell"
     applyingHistory: boolean
+    uploading: boolean
   }>({
     popover: null,
     historyIndex: -1,
@@ -273,6 +275,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     draggingType: null,
     mode: "normal",
     applyingHistory: false,
+    uploading: false,
   })
 
   const buttonsSpring = useSpring(() => (store.mode === "normal" ? 1 : 0), { visualDuration: 0.2, bounce: 0 })
@@ -1437,8 +1440,13 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                   type="button"
                   variant="ghost"
                   class="size-8 p-0"
+                  classList={{
+                    "bg-surface-interactive-weak": store.uploading,
+                  }}
                   style={buttons()}
                   onClick={() => {
+                    if (store.uploading) return
+                    
                     const input = document.createElement('input')
                     input.type = 'file'
                     input.multiple = true
@@ -1447,6 +1455,8 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                       const target = event.target as HTMLInputElement
                       const files = target.files
                       if (!files || files.length === 0) return
+                      
+                      setStore("uploading", true)
                       
                       const uploadDir = `uploads/${params.id || "default"}`
                       
@@ -1481,16 +1491,20 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                           })
                         }
                       }
+                      
+                      setStore("uploading", false)
                       document.body.removeChild(input)
                     }
                     document.body.appendChild(input)
                     input.click()
                   }}
-                  disabled={store.mode !== "normal"}
-                  tabIndex={store.mode === "normal" ? undefined : -1}
-                  aria-label={language.t("prompt.action.attachFile")}
+                  disabled={store.mode !== "normal" || store.uploading}
+                  tabIndex={store.mode === "normal" && !store.uploading ? undefined : -1}
+                  aria-label={store.uploading ? language.t("session.files.uploading") : language.t("prompt.action.attachFile")}
                 >
-                  <Icon name="cloud-upload" class="size-4.5" />
+                  <Show when={store.uploading} fallback={<Icon name="cloud-upload" class="size-4.5" />}>
+                    <Spinner class="size-4.5" />
+                  </Show>
                 </Button>
               </TooltipKeybind>
             </div>
