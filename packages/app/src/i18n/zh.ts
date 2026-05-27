@@ -453,6 +453,7 @@ export const dict = {
   
   "session.files.uploadHint": "拖拽或者点击上传文件",
   "session.files.uploadDisabled": "上传已禁用（非自己的项目）",
+  "session.files.initializing": "正在初始化会话...",
   "file.delete.confirm": "确定要删除 {{filename}} 吗？",
   "file.delete.label": "删除文件",
   "file.download.label": "下载文件",
@@ -836,6 +837,7 @@ export const dict = {
   "settings.permissions.tool.doom_loop.description": "检测具有相同输入的重复工具调用",
 
   "session.delete.failed.title": "删除会话失败",
+  "session.delete.lastSession": "会话数量不能为零",
   "session.delete.title": "删除会话",
   "session.delete.confirm": '删除会话 "{{name}}"？',
   "session.delete.button": "删除会话",

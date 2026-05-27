@@ -459,6 +459,7 @@ export const dict = {
   
   "session.files.uploadHint": "Drag or click to upload files",
   "session.files.uploadDisabled": "Upload disabled (not your project)",
+  "session.files.initializing": "Initializing session...",
   "file.delete.confirm": "Are you sure you want to delete {{filename}}?",
   "file.delete.label": "Delete file",
   "file.download.label": "Download file",
@@ -962,6 +963,7 @@ export const dict = {
   "settings.permissions.tool.doom_loop.description": "Detect repeated tool calls with identical input",
 
   "session.delete.failed.title": "Failed to delete session",
+  "session.delete.lastSession": "Session count cannot be zero",
   "session.delete.title": "Delete session",
   "session.delete.confirm": 'Delete session "{{name}}"?',
   "session.delete.button": "Delete session",

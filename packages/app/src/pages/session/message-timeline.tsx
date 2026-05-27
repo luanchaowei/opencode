@@ -249,6 +249,10 @@ export function MessageTimeline(props: {
     if (!directory) return true
     return device.isOwnProject(directory)
   })
+  const isLastSession = createMemo(() => {
+    const sessions = (sync.data.session ?? []).filter((s) => !s.parentID)
+    return sessions.length <= 1
+  })
 
   const rendered = createMemo(() => props.renderedUserMessages.map((message) => message.id))
   const sessionID = createMemo(() => params.id)
@@ -471,6 +475,16 @@ return language.t("common.requestFailed")
     if (!session) return false
 
     const sessions = (sync.data.session ?? []).filter((s) => !s.parentID)
+    
+    if (sessions.length <= 1) {
+      showToast({
+        variant: "error",
+        title: language.t("session.delete.failed.title"),
+        description: language.t("session.delete.lastSession"),
+      })
+      return false
+    }
+
     const index = sessions.findIndex((s) => s.id === sessionID)
     const nextSession = index === -1 ? undefined : (sessions[index + 1] ?? sessions[index - 1])
 
@@ -772,7 +786,7 @@ return language.t("common.requestFailed")
                               class="size-6 rounded-md data-[expanded]:bg-surface-base-active"
                               aria-label={language.t("common.moreOptions")}
                               aria-expanded={title.menuOpen}
-                              disabled={!isOwnProject()}
+                              disabled={!isOwnProject() || isLastSession()}
                               ref={(el: HTMLButtonElement) => {
                                 more = el
                               }}
@@ -799,6 +813,7 @@ return language.t("common.requestFailed")
                                 <DropdownMenu.Separator />
                                 <DropdownMenu.Item
                                   onSelect={() => dialog.show(() => <DialogDeleteSession sessionID={id} />)}
+                                  disabled={isLastSession()}
                                 >
                                   <DropdownMenu.ItemLabel>{language.t("common.delete")}</DropdownMenu.ItemLabel>
                                 </DropdownMenu.Item>

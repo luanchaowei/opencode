@@ -277,6 +277,7 @@ const WorkspaceSessionList = (props: {
           prefetchSession={props.ctx.prefetchSession}
           deleteSession={props.ctx.deleteSession}
           isOwnProject={props.isOwnProject}
+          isLastSession={() => props.sessions().length <= 1}
         />
       )}
     </For>

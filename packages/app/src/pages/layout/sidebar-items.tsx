@@ -87,6 +87,7 @@ export type SessionItemProps = {
   prefetchSession: (session: Session, priority?: "high" | "low") => void
   deleteSession: (session: Session) => Promise<void>
   isOwnProject?: Accessor<boolean>
+  isLastSession?: Accessor<boolean>
 }
 
 const SessionRow = (props: {
@@ -290,10 +291,11 @@ export const SessionItem = (props: SessionItemProps): JSX.Element => {
                   variant="ghost"
                   class="size-6 rounded-md"
                   aria-label={language.t("common.delete")}
-                  disabled={props.isOwnProject ? !props.isOwnProject() : false}
+                  disabled={props.isLastSession?.() || (props.isOwnProject ? !props.isOwnProject() : false)}
                   onClick={(event) => {
                     event.preventDefault()
                     event.stopPropagation()
+                    if (props.isLastSession?.()) return
                     dialog.show(DialogDeleteSession)
                   }}
                 />

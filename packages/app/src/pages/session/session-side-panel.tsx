@@ -13,6 +13,7 @@ import type { SnapshotFileDiff, VcsFileDiff } from "@opencode-ai/sdk/v2"
 import { ConstrainDragYAxis, getDraggableId } from "@/utils/solid-dnd"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { Icon } from "@opencode-ai/ui/icon"
+import { Spinner } from "@opencode-ai/ui/spinner"
 
 import FileTree from "@/components/file-tree"
 import { SessionContextUsage } from "@/components/session-context-usage"
@@ -132,15 +133,6 @@ const isDesktop = createMediaQuery("(min-width: 768px)")
     }
     return out
   })
-
-  const empty = (msg: string) => (
-    <div class="h-full flex flex-col">
-      <div class="h-6 shrink-0" aria-hidden />
-      <div class="flex-1 pb-64 flex items-center justify-center text-center">
-        <div class="text-12-regular text-text-weak">{msg}</div>
-      </div>
-    </div>
-  )
 
   const nofiles = createMemo(() => {
     const state = file.tree.state("")
@@ -441,32 +433,39 @@ const isDesktop = createMediaQuery("(min-width: 768px)")
                     </Tabs.Trigger>
                   </Tabs.List>
                   <Tabs.Content value="all" class="bg-background-stronger px-3 py-0">
-                    <Switch>
-<Match when={nofiles()}>{empty(language.t("session.files.empty"))}</Match>
-                       <Match when={uploadDir()}>
-                         <FileTree
-                           path={uploadDir()!}
-                           class="pt-3"
-                           modified={diffFiles()}
-                           kinds={kinds()}
-                           showDelete={true}
-                           isOwnProject={isOwnProject()}
-                           onFileDoubleClick={(node) => {
-                             const current = prompt.current()
-                             prompt.set([...current, { type: "file", path: node.path, content: "@" + node.path, start: 0, end: 0 }], prompt.cursor())
-                           }}
-                         />
-                       </Match>
-</Switch>
+                    <Show when={uploadDir() && !nofiles()}>
+                          <FileTree
+                            path={uploadDir()!}
+                            class="pt-3"
+                            modified={diffFiles()}
+                            kinds={kinds()}
+                            showDelete={true}
+                            isOwnProject={isOwnProject()}
+                            onFileDoubleClick={(node) => {
+                              const current = prompt.current()
+                              prompt.set([...current, { type: "file", path: node.path, content: "@" + node.path, start: 0, end: 0 }], prompt.cursor())
+                            }}
+                          />
+                        </Show>
 
-                    <Show when={isOwnProject()} fallback={
-                      <div class="mt-4 p-3 border-2 border-dashed border-border-weak rounded-lg opacity-50" style="min-height: 80px">
-                        <div class="flex flex-col items-center justify-center text-text-weaker">
-                          <Icon name="cloud-upload" class="size-6 mb-2" />
-                          <p class="text-12-regular">{language.t("session.files.uploadDisabled")}</p>
+                    <Show when={isOwnProject() && uploadDir()} fallback={<>
+                      <Show when={!isOwnProject()}>
+                        <div class="mt-4 p-3 border-2 border-dashed border-border-weak rounded-lg opacity-50" style="min-height: 80px">
+                          <div class="flex flex-col items-center justify-center text-text-weaker">
+                            <Icon name="cloud-upload" class="size-6 mb-2" />
+                            <p class="text-12-regular">{language.t("session.files.uploadDisabled")}</p>
+                          </div>
                         </div>
-                      </div>
-                    }>
+                      </Show>
+                      <Show when={isOwnProject() && !uploadDir()}>
+                        <div class="mt-4 p-3 border-2 border-dashed border-border-weak rounded-lg opacity-50" style="min-height: 80px">
+                          <div class="flex flex-col items-center justify-center text-text-weaker">
+                            <Spinner class="mb-2" />
+                            <p class="text-12-regular">{language.t("session.files.initializing")}</p>
+                          </div>
+                        </div>
+                      </Show>
+                    </>}>
                       <div
                         class="mt-4 p-3 border-2 border-dashed border-border-weak rounded-lg hover:border-border-base transition-colors file-upload-zone cursor-pointer"
                         style="min-height: 80px"
