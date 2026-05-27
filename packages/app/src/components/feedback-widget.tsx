@@ -3,6 +3,7 @@ import { useLanguage } from "@/context/language"
 import { useDevice } from "@/context/device"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { HoverCard } from "@opencode-ai/ui/hover-card"
+import { Icon } from "@opencode-ai/ui/icon"
 import { CaseLibraryDialog } from "./dialog-case-library"
 
 export function FeedbackWidget() {
@@ -63,9 +64,7 @@ export function FeedbackWidget() {
             dialog.show(() => <CaseLibraryDialog />)
           }}
         >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8M10 12h4" />
-          </svg>
+          <Icon name="book" size="small" class="text-icon-weak" />
           {language.t("enterprise.caseLibrary")}
         </div>
       </Show>
