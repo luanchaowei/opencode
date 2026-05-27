@@ -621,6 +621,8 @@ export const dict = {
 
   "enterprise.contactAdmin": "联系管理员",
   "enterprise.queueWarning": "受算力资源影响，任务可能需要排队，请耐心等待！！！",
+  "enterprise.feedback": "意见反馈",
+  "enterprise.feedbackUrl": "https://example.com/feedback",
 
   "sidebar.menu.toggle": "切换菜单",
   "sidebar.nav.projectsAndSessions": "项目和会话",

@@ -62,8 +62,9 @@ export default [
             const clientIP = getClientIP(req)
             const contactAdmin = process.env.VITE_CONTACT_ADMIN || ""
             const contactList = contactAdmin.split('|').filter(line => line.trim())
+            const feedbackUrl = process.env.VITE_FEEDBACK_URL || ""
             res.setHeader("Content-Type", "application/json")
-            res.end(JSON.stringify({ clientIP, contactAdmin: contactList }))
+            res.end(JSON.stringify({ clientIP, contactAdmin: contactList, feedbackUrl }))
           } catch (error) {
             res.statusCode = 500
             res.end(JSON.stringify({ error: error.message }))

@@ -678,6 +678,8 @@ export const dict = {
 
   "enterprise.contactAdmin": "Contact Admin",
   "enterprise.queueWarning": "Due to computing resources, tasks may need to queue, please wait patiently!!!",
+  "enterprise.feedback": "Feedback",
+  "enterprise.feedbackUrl": "https://example.com/feedback",
   "common.key.ctrl": "Ctrl",
   "common.key.alt": "Alt",
   "common.key.shift": "Shift",

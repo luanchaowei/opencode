@@ -295,25 +295,7 @@ export function Titlebar() {
                   </Tooltip>
                 </div>
               </Show>
-              <div id="opencode-titlebar-left" class="flex items-center gap-3 min-w-0 px-2" />
-<Show when={device.contactAdmin().length > 0}>
-              <HoverCard
-                placement="bottom"
-                openDelay={200}
-                closeDelay={100}
-                trigger={
-                  <span class="text-12-regular text-text-weak px-2 cursor-help border-l border-border-weak-base ml-4 pl-3">
-                    {language.t("enterprise.contactAdmin")}
-                  </span>
-                }
-              >
-                <div class="flex flex-col gap-1 text-left p-2 bg-surface-panel rounded-md border border-border-weak-base shadow-md select-text">
-                  <For each={device.contactAdmin()}>
-                    {(contact) => <div class="text-12-regular">{contact}</div>}
-                  </For>
-                </div>
-              </HoverCard>
-            </Show>
+<div id="opencode-titlebar-left" class="flex items-center gap-3 min-w-0 px-2" />
               {["beta", "dev"].includes(import.meta.env.VITE_OPENCODE_CHANNEL) && (
                 <div class="bg-icon-interactive-base text-[#FFF] font-medium px-2 rounded-sm uppercase font-mono">
                   {import.meta.env.VITE_OPENCODE_CHANNEL.toUpperCase()}

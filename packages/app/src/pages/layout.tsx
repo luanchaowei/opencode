@@ -64,6 +64,7 @@ import { ConstrainDragXAxis, getDraggableId } from "@/utils/solid-dnd"
 import { DebugBar } from "@/components/debug-bar"
 import { Titlebar } from "@/components/titlebar"
 import { DialogNewSession } from "@/components/dialog-new-session"
+import { FeedbackWidget } from "@/components/feedback-widget"
 import { useServer } from "@/context/server"
 import { useLanguage, type Locale } from "@/context/language"
 import {
@@ -2464,6 +2465,7 @@ return (
           </div>
         </div>
         {import.meta.env.DEV && <DebugBar />}
+        <FeedbackWidget />
       </div>
       <Toast.Region />
     </div>
