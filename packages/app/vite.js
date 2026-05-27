@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, mkdirSync, existsSync, unlinkSync, statSync, readdirSync, rmdirSync } from "node:fs"
+import { readFileSync, writeFileSync, mkdirSync, existsSync, unlinkSync, statSync, readdirSync, rmdirSync, realpathSync } from "node:fs"
 import { dirname, join } from "node:path"
 import solidPlugin from "vite-plugin-solid"
 import tailwindcss from "@tailwindcss/vite"
@@ -137,7 +137,20 @@ export default [
             const dirs = []
             const entries = readdirSync(targetDir, { withFileTypes: true })
             for (const entry of entries) {
-              if (entry.isDirectory()) {
+              if (entry.isSymbolicLink()) {
+                try {
+                  const linkPath = join(targetDir, entry.name)
+                  const realPath = realpathSync(linkPath)
+                  const stat = statSync(realPath)
+                  if (stat.isDirectory()) {
+                    dirs.push({ name: entry.name, path: subPath ? `${subPath}/${entry.name}` : entry.name })
+                  } else {
+                    files.push({ name: entry.name, path: subPath ? `${subPath}/${entry.name}` : entry.name })
+                  }
+                } catch {
+                  files.push({ name: entry.name, path: subPath ? `${subPath}/${entry.name}` : entry.name })
+                }
+              } else if (entry.isDirectory()) {
                 dirs.push({ name: entry.name, path: subPath ? `${subPath}/${entry.name}` : entry.name })
               } else if (entry.isFile()) {
                 files.push({ name: entry.name, path: subPath ? `${subPath}/${entry.name}` : entry.name })
