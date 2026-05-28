@@ -22,6 +22,7 @@ import { decode64 } from "@/utils/base64"
 import { ResizeHandle } from "@opencode-ai/ui/resize-handle"
 import { Button } from "@opencode-ai/ui/button"
 import { IconButton } from "@opencode-ai/ui/icon-button"
+import { Icon } from "@opencode-ai/ui/icon"
 import { Tooltip } from "@opencode-ai/ui/tooltip"
 import { DropdownMenu } from "@opencode-ai/ui/dropdown-menu"
 import { Dialog } from "@opencode-ai/ui/dialog"
@@ -2309,17 +2310,9 @@ return (
     <div class="relative bg-background-base flex-1 min-h-0 min-w-0 flex flex-col select-none [&_input]:select-text [&_textarea]:select-text [&_[contenteditable]]:select-text">
       {autoselecting() ?? ""}
       <Show when={language.t("enterprise.queueWarning")}>
-        <div class="overflow-hidden py-1.5" style="background-color: #fbbf24; color: #78350f;">
-          <div class="animate-marquee whitespace-nowrap inline-block">
-            <For each={[0, 1, 2, 3, 4, 5, 6, 7]}>
-              {() => (
-                <>
-                  <span class="text-12-medium">{language.t("enterprise.queueWarning")}</span>
-                  <span class="ml-[5vw]" />
-                </>
-              )}
-            </For>
-          </div>
+        <div class="flex items-center justify-center py-1.5 px-4 gap-2" style="background-color: #fbbf24; color: #78350f;">
+          <Icon name="warning" class="size-4" />
+          <span class="text-12-medium font-bold">{language.t("enterprise.queueWarning")}</span>
         </div>
       </Show>
       <Titlebar />
