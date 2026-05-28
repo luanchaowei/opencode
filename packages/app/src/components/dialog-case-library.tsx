@@ -1,4 +1,4 @@
-import { createSignal, createResource, For, Show, Suspense } from "solid-js"
+import { createSignal, createResource, For, Show, Suspense, onMount } from "solid-js"
 import { createStore } from "solid-js/store"
 import { useLanguage } from "@/context/language"
 import { Dialog } from "@opencode-ai/ui/dialog"
@@ -7,6 +7,7 @@ import { Spinner } from "@opencode-ai/ui/spinner"
 import { Button } from "@opencode-ai/ui/button"
 import { ResizeHandle } from "@opencode-ai/ui/resize-handle"
 import { marked } from "marked"
+import mermaid from "mermaid"
 
 const DEFAULT_SIDEBAR_WIDTH = 300
 
@@ -16,6 +17,14 @@ export function CaseLibraryDialog() {
   const [selectedFile, setSelectedFile] = createSignal<string | null>(null)
   const [store, setStore] = createStore({
     sidebarWidth: DEFAULT_SIDEBAR_WIDTH,
+  })
+  
+  onMount(() => {
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'default',
+      securityLevel: 'loose',
+    })
   })
   
   const [items] = createResource(currentPath, async (path) => {
@@ -37,12 +46,49 @@ export function CaseLibraryDialog() {
       const data = await res.json()
       const text = data.content || ""
       const isMarkdown = filePath.toLowerCase().endsWith(".md")
-      const html = isMarkdown ? await marked.parse(text) : text
-      return { html, isMarkdown }
+      
+      if (isMarkdown) {
+        const processedText = await processMermaidBlocks(text)
+        const html = await marked.parse(processedText)
+        return { html, isMarkdown }
+      }
+      
+      return { html: text, isMarkdown: false }
     } catch {
       return { html: "", isMarkdown: false }
     }
   })
+  
+  const processMermaidBlocks = async (text: string): Promise<string> => {
+    const parts = text.split('```')
+    let result = text
+    
+    for (let i = 0; i < parts.length - 1; i += 2) {
+      const lang = parts[i + 1]?.split('\n')[0]?.trim()
+      
+      if (lang === 'mermaid') {
+        const startIndex = result.indexOf('```mermaid')
+        if (startIndex !== -1) {
+          const endIndex = result.indexOf('```', startIndex + 10)
+          if (endIndex !== -1) {
+            const fullBlock = result.substring(startIndex, endIndex + 3)
+            const codeContent = result.substring(startIndex + 10, endIndex).trim()
+            
+            try {
+              const id = `mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+              const { svg } = await mermaid.render(id, codeContent)
+              result = result.replace(fullBlock, `<div class="mermaid-diagram">${svg}</div>`)
+            } catch {
+              result = result.replace(fullBlock, `<pre><code class="language-mermaid">${codeContent}</code></pre>`)
+            }
+          }
+        }
+        // Don't break, continue processing all mermaid blocks
+      }
+    }
+    
+    return result
+  }
   
   const goToParent = () => {
     const path = currentPath()
@@ -139,7 +185,7 @@ export function CaseLibraryDialog() {
               <Show when={content()?.isMarkdown}>
                 <div 
                   data-component="markdown"
-                  class="flex-1 min-h-0 overflow-auto bg-surface-panel p-4 rounded border border-border-weak-base"
+                  class="flex-1 min-h-0 overflow-auto bg-surface-panel p-4 rounded border border-border-weak-base prose prose-sm"
                   innerHTML={content()?.html || ""}
                 />
               </Show>
